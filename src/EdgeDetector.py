@@ -1,11 +1,12 @@
 import ee
 import geemap
+from PointData import PointData
 
 """Class detecting edges in images using different bands from Sentinel2"""
 
 
 class EdgeDetector:
-    def __init__(self, points: ee.FeatureCollection, map_center: ee.Geometry.Point, projection: ee.Projection):
+    def __init__(self, points: ee.FeatureCollection, map_center: PointData):
         self.__time_periods = [['2017-06-01', '2017-09-01'], ['2018-06-01', '2018-09-01'], ['2019-06-01', '2019-09-01'],
                                ['2020-06-01', '2020-09-01'], ['2021-06-01', '2021-09-01'], ['2022-06-01', '2022-09-01'],
                                ['2023-06-01', '2023-09-01'], ['2024-06-01',
@@ -26,7 +27,7 @@ class EdgeDetector:
         """ Function that finds particular band for selected image """
         return (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
                 .filterDate(time_period[0], time_period[1])
-                .filterBounds(self.__map_center)
+                .filterBounds(self.__map_center.get_gee_point())
                 .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', self.__cloud_filter_threshold))
                 .select(band)
                 .mean())
@@ -61,7 +62,7 @@ class EdgeDetector:
         """ Function that returns map image for a GEE Map """
         return (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
                 .filterDate(self.__time_periods[0][0], self.__time_periods[-1][0])
-                .filterBounds(self.__map_center)
+                .filterBounds(self.__map_center.get_gee_point())
                 # Pre-filter to get less cloudy granules.
                 .filter(
             ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', self.__cloud_filter_threshold)
@@ -97,7 +98,7 @@ class EdgeDetector:
     def __prepare_result_map(self, results_list: ee.Image) -> geemap.Map:
         """ Prepares result map that is ready to show to user """
         resultMap = geemap.Map()
-        center_coords = self.__map_center.coordinates().getInfo()
+        center_coords = self.__map_center.get_coordinates_degrees()
         resultMap.set_center(center_coords[0], center_coords[1], self.__scale)
         visualization = {
             'min': 0.0,

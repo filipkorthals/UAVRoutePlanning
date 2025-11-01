@@ -1,6 +1,7 @@
 import ee
 import time
 from AreaDetectionController import AreaDetectionController
+from PointData import PointData
 
 if __name__ == "__main__":
     start = time.time()
@@ -12,11 +13,11 @@ if __name__ == "__main__":
 
     longitude = 53.324167
     latitude = 18.448611
-    point = ee.Geometry.Point([latitude, longitude])
+    point = PointData(latitude, longitude, ee.Projection('EPSG:3035'))  # podobno coś nie tak ze współrzędnymi jest trzeba sprawdzićm, ale błagam nie rozwal kodu :(
 
     longitude2 = 53.325556
     latitude2 = 18.443333
-    point2 = ee.Geometry.Point([latitude2, longitude2])
+    point2 = PointData(latitude2, longitude2, ee.Projection('EPSG:3035'))
 
     points_list = [point, point2]
 

@@ -5,24 +5,25 @@ from skimage.segmentation import flood_fill
 import cv2 as cv
 import matplotlib.pyplot as plt
 from Direction import Direction
+from PointData import PointData
 
 """ Class that represents map fragments that are stored in AreaDetector class, makes map operations easier """
 
 
 class MapFragment:
-    def __init__(self, center_point: ee.Geometry.Point, projection: ee.Projection, buffer_radius: float,
+    def __init__(self, center_point: PointData, projection: ee.Projection, buffer_radius: float,
                  edge_map: geemap.Map, img_resolution: int):
         self.__buffer_radius = buffer_radius
         self.__img_resolution = img_resolution
         self.__projection = ee.Projection(projection)
         self.__center_point = center_point
         self.__scale = 5
-        self.__map_representation = self.__move_rectangle_to_numpy(self.__center_point, edge_map)
+        self.__map_representation = self.__move_rectangle_to_numpy(edge_map)
 
-    def __move_rectangle_to_numpy(self, center_point: ee.Geometry.Point, edge_map: geemap.Map) -> np.array:
+    def __move_rectangle_to_numpy(self, edge_map: geemap.Map) -> np.array:
         """ Converts map rectangle to NumPy array """
         # select buffer around center point
-        buffer = self.__get_buffer_around_point(center_point)
+        buffer = self.__get_buffer_around_point(self.__center_point)
         img = edge_map.reproject(self.__projection, None, self.__scale)
         img = img.sampleRectangle(region=buffer, defaultValue=0).getInfo()
 
@@ -30,31 +31,23 @@ class MapFragment:
         img = np.array(img['properties']['max'], dtype=float)
         return img
 
-    def contains_point(self, point: ee.Geometry.Point) -> bool:
+    def contains_point(self, point: PointData) -> bool:
         """ Function that checks whether a point is inside the map fragment """
         if self.__get_buffer_around_point(self.__center_point).bounds(proj=self.__projection).intersects(
-                point).getInfo():
+                point.get_gee_point()).getInfo():
             return True
         return False
 
-    def __get_buffer_around_point(self, point: ee.Geometry.Point) -> ee.Geometry:
+    def __get_buffer_around_point(self, point: PointData) -> ee.Geometry:
         """ Returns buffer around point """
-        return point.buffer(self.__buffer_radius, proj=self.__projection)
+        return point.get_gee_point().buffer(self.__buffer_radius, proj=self.__projection)
 
-    def find_near_map_fragment_center(self, x_direction: int, y_direction: int) -> ee.Geometry.Point:
+    def find_near_map_fragment_center(self, x_direction: int, y_direction: int) -> PointData:
         """ Returns center point of map fragment next to the current one """
-        x, y = self.get_center_point_coordinates_reprojected()
-        return ee.Geometry.Point(
-            [x + x_direction * self.__buffer_radius * 2, y - y_direction * self.__buffer_radius * 2],
-            proj=self.__projection)
-
-    def get_center_point_coordinates(self) -> tuple[float, float]:
-        """ Returns center point coordinates of map fragment in degrees """
-        return self.__center_point.coordinates().getInfo()
-
-    def get_center_point_coordinates_reprojected(self) -> tuple[float, float]:
-        """ Returns center point coordinates of map fragment in meters """
-        return self.__center_point.transform(self.__projection).coordinates().getInfo()
+        x, y = self.__center_point.get_coordinates_degrees()
+        latitude = x + x_direction * self.__buffer_radius * 2
+        longitude = y - y_direction * self.__buffer_radius * 2
+        return PointData(latitude, longitude, self.__projection)
 
     def run_flood_fill(self, x: int, y: int):
         """ Runs flood fill on map fragment - detected areas have value of 0.5 to differentiate them from the edges """
@@ -80,7 +73,8 @@ class MapFragment:
         self.__map_representation = self.__map_representation.astype(np.uint8)
 
     def apply_morphology_close(self, kernel_size: int = 5):
-        """ Applies morphological close with selected kernel size to reduce discontinuity in image, mask size needs to be odd number """
+        """ Applies morphological close with selected kernel size to reduce discontinuity in image, mask size needs
+        to be odd number"""
         kernel = np.ones((kernel_size, kernel_size), np.uint8)
         self.__map_representation = cv.morphologyEx(self.__map_representation, cv.MORPH_CLOSE, kernel)
 
@@ -154,31 +148,33 @@ class MapFragment:
             elif direction == Direction.RIGHT:
                 points_for_flood_fill.append((0, y))
 
-    def convert_point_to_img_coordinates(self, point: ee.Geometry.Point) -> list[int]:
-        """ Function that returns point ready to plot using matplotlib """
-        buffer = self.__center_point.buffer(self.__buffer_radius,
-                                            proj=self.__projection)  # selecting buffer around point
-
-        buffer_origin = buffer.bounds(proj=self.__projection).coordinates().getInfo()[0][3]
-        buffer_origin = ee.Geometry.Point(buffer_origin, proj=self.__projection)
-        base = buffer_origin.coordinates().getInfo()  # base -> [y, x]
-        point_coordinates = point.coordinates().getInfo()  # coordinates of point -> [y, x]
-
-        y = int(round((base[1] - point_coordinates[1]) / self.__img_resolution))
-        x = int(round((point_coordinates[0] - base[0]) / self.__img_resolution))
-
-        return [x, y]
-
-    def convert_point_to_map_coordinates(self, x: int, y: int) -> tuple[float, float]:
-        """ Converts point from map representation into the point coordinates that correspond to the real coordinates
-        that are used by the map"""
-        # TODO: musisz się dowiedzieć jak konkretnie ma to być wykorzystane wyświetlane - w jakim formacie będą
-        #  docelowe współrzędne do wyświetlania oraz do planowania trasy
-        return ()
-
     def get_image(self) -> np.array:
         """ Returns representation of map fragment as a np.array """
         return self.__map_representation
 
     def get_pixel_value(self, x: int, y: int) -> float:
         return self.__map_representation[y][x]
+
+    def get_center_point(self):
+        return self.__center_point
+
+    def convert_point_to_img_coordinates(self, point: PointData) -> list[int]:
+        """ Function that returns point ready to plot using matplotlib """
+        if point.get_image_coordinates() is None:
+            buffer = self.__center_point.get_gee_point().buffer(self.__buffer_radius, proj=self.__projection)
+
+            # ????????? co to był za kod
+            # buffer_origin = buffer.bounds(proj=projection).coordinates().getInfo()[0][3]
+            # buffer_origin = ee.Geometry.Point(buffer_origin, proj=projection)
+            # base = buffer_origin.coordinates().getInfo()  # base -> [y, x]
+            # point_coordinates = point.get_coordinates_degrees()  # coordinates of point -> [y, x]
+
+            buffer_origin = buffer.bounds(proj=self.__projection).coordinates().getInfo()[0][3]  # buffer_origin -> [y, x]
+            point_coordinates = point.get_coordinates_meters()  # coordinates of point -> [y, x]
+
+            y = int(round((buffer_origin[1] - point_coordinates[1]) / self.__img_resolution))
+            x = int(round((point_coordinates[0] - buffer_origin[0]) / self.__img_resolution))
+
+            point.set_image_coordinates(x, y)  # nie wiem czy współrzędne są w dobrej kolejności :)
+
+        return point.get_image_coordinates()

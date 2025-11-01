@@ -3,6 +3,7 @@ import geemap
 from MapFragment import MapFragment
 from Direction import Direction
 import matplotlib.pyplot as plt
+from PointData import PointData
 
 
 """ Class that is responsible of detecting areas in images that contain results of Canny Edge Detection """
@@ -19,17 +20,18 @@ class AreaDetector:
         self.__buffer_radius = (self.__patch_size / 2) * self.__img_resolution
         self.__load_map_fragment(self.__map_center, 0, 0)
 
-    def __load_map_fragment(self, center_point: ee.Geometry.Point, x_pos_to_insert: int, y_pos_to_insert: int):
+    def __load_map_fragment(self, center_point: PointData, x_pos_to_insert: int, y_pos_to_insert: int):
         """ Initiates a map around center point of image """
         new_map_fragment = MapFragment(center_point, self.__projection, self.__buffer_radius, self.__edge_map,
                                        self.__img_resolution)
         self.__detected_areas_map[y_pos_to_insert].insert(x_pos_to_insert, new_map_fragment)
 
-    def __search_row_for_the_map_fragment(self, map_fragment_center_coordinates: tuple[float, float],
-                                          point_coordinates: tuple[float, float],
-                                          row_num: int, point: ee.Geometry.Point) -> tuple[int, int]:
+    def __search_row_for_the_map_fragment(self, map_fragment_center: PointData, point: PointData,
+                                          row_num: int) -> tuple[int, int]:
         """ Searches for map fragment in row and returns coordinates of map fragment as [row_num, col_num] """
         direction_x = 0
+        point_coordinates = point.get_coordinates_meters()
+        map_fragment_center_coordinates = map_fragment_center.get_coordinates_meters()
         if (point_coordinates[0] - map_fragment_center_coordinates[0]) <= -self.__buffer_radius:
             direction_x = -1
         elif (point_coordinates[0] - map_fragment_center_coordinates[0]) >= self.__buffer_radius:
@@ -49,12 +51,14 @@ class AreaDetector:
             while True:
                 current_map_fragment = self.__detected_areas_map[row_num][0]
                 self.__load_map_fragment(current_map_fragment.find_near_map_fragment_center(-1, 0), 0, row_num)
-                if self.__detected_areas_map[row_num][0].contains_point(point):
+                if self.__detected_areas_map[row_num][0].contains_point(point.get_gee_point()):
                     return row_num, 0
 
-    def __search_for_the_map_fragment(self, row_num: int, point: ee.Geometry.Point) -> tuple[int, int]:
-        # UWAGA - JEŻELI PUNKTY BĘDĄ W BARDZO DUŻYCH ODLEGŁOŚCIACH OD SIEBIE - WIĘCEJ NIŻ JEDEN SEGMENT TO SIĘ WYWALI BO NIE ZNAJDZIE FRAGMENTU I NIE BĘDZIE WIEDZIAŁ JAK DODAĆ
-        """ Searches self.__detected_areas_map for row where point is located and returns map fragment coordinates as [row_num, col_num] """
+    def __search_for_the_map_fragment(self, row_num: int, point: PointData) -> tuple[int, int]:
+        # UWAGA - JEŻELI PUNKTY BĘDĄ W BARDZO DUŻYCH ODLEGŁOŚCIACH OD SIEBIE - WIĘCEJ NIŻ JEDEN SEGMENT TO SIĘ WYWALI
+        # BO NIE ZNAJDZIE FRAGMENTU I NIE BĘDZIE WIEDZIAŁ JAK DODAĆ
+        """ Searches self.__detected_areas_map for row where point is located and returns map fragment coordinates as
+        [row_num, col_num]"""
         if row_num < 0:
             self.__detected_areas_map.insert(0, [])  # new row at the top is added
             current_map_fragment = self.__detected_areas_map[1][0]  # we start looking from the lower row
@@ -68,13 +72,13 @@ class AreaDetector:
                                      len(self.__detected_areas_map) - 1)
             return self.__search_for_the_map_fragment(row_num, point)
 
-        map_fragment_center = self.__detected_areas_map[row_num][0].get_center_point_coordinates_reprojected()
+        map_fragment_center = self.__detected_areas_map[row_num][0].get_center_point()
         direction_y = 0
-        point_coordinates = point.coordinates().getInfo()
+        point_coordinates = point.get_coordinates_meters()
 
-        if (map_fragment_center[1] - point_coordinates[1]) <= -self.__buffer_radius:
+        if (map_fragment_center.get_coordinates_meters()[1] - point_coordinates[1]) <= -self.__buffer_radius:
             direction_y = -1
-        elif (map_fragment_center[1] - point_coordinates[
+        elif (map_fragment_center.get_coordinates_meters()[1] - point_coordinates[
             1]) >= self.__buffer_radius:  # nie wiem czy nie trzeba tego podzielić przez resolution?? - ale chyba nie
             direction_y = 1
 
@@ -98,26 +102,26 @@ class AreaDetector:
             return self.__search_for_the_map_fragment(row_num + 1, point)
 
         # if current row is correct, we start searching inside it
-        return self.__search_row_for_the_map_fragment(map_fragment_center, point_coordinates, row_num, point)
+        return self.__search_row_for_the_map_fragment(map_fragment_center, point, row_num)
 
-    def detect_areas(self, coordinates_list: list[tuple]) -> None:
+    def detect_areas(self, points: list[PointData]) -> None:
         """ Detects area that contains provided point """
         # TODO: try to paralelize detecting areas
 
-        for point_coordinates in coordinates_list:
-            projected_point = ee.Geometry.Point(point_coordinates, proj=self.__projection)
-
+        for point in points:
+            # tutaj podobno wcześniej była projekcja ale nie wiem czy jest sens sprawdzimy
             # searching for corresponding map fragment for the point
-            row_num, col_num = self.__search_for_the_map_fragment(0, projected_point)
+            row_num, col_num = self.__search_for_the_map_fragment(0, point)
 
             found_map_fragment = self.__detected_areas_map[row_num][col_num]
-            x, y = found_map_fragment.convert_point_to_img_coordinates(projected_point)
+            x, y = found_map_fragment.convert_point_to_img_coordinates(point)
             found_map_fragment.run_flood_fill(x, y)
 
             self.detect_in_adjacent_map_fragments(found_map_fragment, row_num)
 
     def detect_in_adjacent_map_fragments(self, found_map_fragment: MapFragment, row_num: int) -> None:
-        """ Runs area detection in adjacent map fragments if this is necessary - when area detected previously is beyond current map fragment """
+        """ Runs area detection in adjacent map fragments if this is necessary - when area detected previously is
+        beyond current map fragment"""
         points_to_check = found_map_fragment.check_bounds()
         for direction in Direction:
             if len(points_to_check[direction.value]) == 0:
@@ -178,7 +182,7 @@ class AreaDetector:
                 self.__detected_areas_map[row][column].get_boundary_points()
         return []
 
-    def plot_result(self, points_coordinates: list[tuple[int, int]]) -> None:
+    def plot_result(self, points: list[PointData]) -> None:
         """ Plots result of area detection """
         # to też trzeba zmienić żeby plotowało więcej fragmentów niż tylko jeden
         counter = 1
@@ -186,9 +190,8 @@ class AreaDetector:
             for map_fragment in self.__detected_areas_map[row_index]:
                 plt.figure()
                 plt.imshow(map_fragment.get_image(), cmap='gray', vmin=0, vmax=1)
-                for coordinates in points_coordinates:
-                    prepared_coordinates = map_fragment.convert_point_to_img_coordinates(
-                        ee.Geometry.Point(coordinates[0], coordinates[1]))
+                for point in points:
+                    prepared_coordinates = map_fragment.convert_point_to_img_coordinates(point)
                     plt.plot(prepared_coordinates[0], prepared_coordinates[1], 'ro', markersize=5)
                 plt.axis("off")
                 plt.savefig('Canny' + str(counter) + '.jpg', dpi=500, bbox_inches='tight')
