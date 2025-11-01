@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 
 class AreaDetector:
 
-    def __init__(self, edge_map: geemap.Map, map_center: ee.Geometry.Point, projection: ee.Projection):
+    def __init__(self, edge_map: geemap.Image, map_center: ee.Geometry.Point, projection: ee.Projection):
         self.__edge_map = edge_map
         self.__projection = projection
         self.__map_center = map_center  # nie wiem czy to jest jeszcze potrzebne, na razie zostaje
@@ -100,7 +100,7 @@ class AreaDetector:
         # if current row is correct, we start searching inside it
         return self.__search_row_for_the_map_fragment(map_fragment_center, point_coordinates, row_num, point)
 
-    def detect_areas(self, coordinates_list: list[tuple[float, float]]) -> None:
+    def detect_areas(self, coordinates_list: list[tuple]) -> None:
         """ Detects area that contains provided point """
         # TODO: try to paralelize detecting areas
 
@@ -121,7 +121,8 @@ class AreaDetector:
         points_to_check = found_map_fragment.check_bounds()
         for direction in Direction:
             if len(points_to_check[direction.value]) == 0:
-                # we don't have to check map fragment in this direction as there aren't any areas detected in this direction
+                # we don't have to check map fragment in this direction as there aren't any areas detected in this
+                # direction
                 continue
 
             new_row_num, new_col_num = (0, 0)
@@ -152,15 +153,8 @@ class AreaDetector:
 
     def extract_points(self) -> list[tuple[float, float]]:
         """ Returns outline points from detected area """
-        # tutaj trzeba tak
-        # najpierw progowanie żeby wyciągnąć tylko wykryte tereny
-        # potem morfologia - zamknięcie
-        # potem znowu progowanie - w ten sposób tereny powinny być lepiej połączone - pewnie będzie trzeba dobrać odpowiednie parametry do rozmycia, zobaczymy jak to będzie wyglądać
-        # następnie trzeba zaimplementować wyciąganie konturu z każdego fragmentu mapy i usuwanie punktów, które należą do obrysu fragmentu mapy
-        # konwersja punktów na obrazku na punkty na mapie
-        # dodanie wszystkich punktów do jednej tablicy, która będzie mogła zwrócić wynik do frontendu
-        # fajrant :)
-        # dla filtrów liniowych jest też wersja, która działa na CUDA - nie wiem czy jest sens ją implementować
+        # dla filtrów liniowych jest też wersja, która działa na CUDA -
+        # nie wiem czy jest sens ją implementować
         counter = 1
         for row in range(len(self.__detected_areas_map)):
             for column in range(len(self.__detected_areas_map[row])):

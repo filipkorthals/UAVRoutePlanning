@@ -8,6 +8,7 @@ from Direction import Direction
 
 """ Class that represents map fragments that are stored in AreaDetector class, makes map operations easier """
 
+
 class MapFragment:
     def __init__(self, center_point: ee.Geometry.Point, projection: ee.Projection, buffer_radius: float,
                  edge_map: geemap.Map, img_resolution: int):
@@ -20,29 +21,14 @@ class MapFragment:
 
     def __move_rectangle_to_numpy(self, center_point: ee.Geometry.Point, edge_map: geemap.Map) -> np.array:
         """ Converts map rectangle to NumPy array """
-        # TODO: try to use numpy sparse matrix to save space and time while copying data - if everything will happen
-        #  on the server side this might be unnecessary
-        # select buffer around provided point
+        # select buffer around center point
         buffer = self.__get_buffer_around_point(center_point)
-
-        # Reproject image to better resolution
         img = edge_map.reproject(self.__projection, None, self.__scale)
+        img = img.sampleRectangle(region=buffer, defaultValue=0).getInfo()
 
-        # Extract Rectangle from Image
-        band_arrs = img.sampleRectangle(region=buffer, defaultValue=0)
-
-        # Rectangle values to numpy array
-        new_image = None
-        for band in img.bandNames().getInfo():
-            current_band = band_arrs.get(band)
-            img = np.array(current_band.getInfo())
-            img = img.astype(float)
-            # Stacking each band
-            if new_image is None:
-                new_image = img
-            else:
-                new_image = np.dstack([new_image, img])
-        return new_image
+        # selecting band of the image
+        img = np.array(img['properties']['max'], dtype=float)
+        return img
 
     def contains_point(self, point: ee.Geometry.Point) -> bool:
         """ Function that checks whether a point is inside the map fragment """
@@ -140,9 +126,10 @@ class MapFragment:
 
     def check_bounds(self) -> tuple[
         list[tuple[int, int]], list[tuple[int, int]], list[tuple[int, int]], list[tuple[int, int]]]:
-        """ Checks if any detected area is at the bounds of the map fragment and returns points for flood fill each adjacent map fragments """
-        points_for_flood_fill = ([], [], [],
-                                 [])  # tuple that contains list of the points that will be used for flood fill to the adjacent map fragments
+        """ Checks if any detected area is at the bounds of the map fragment and returns points for flood fill each
+        adjacent map fragments"""
+        points_for_flood_fill = ([], [], [], [])
+        # tuple that contains list of the points that will be used for flood fill to the adjacent map fragments
 
         for i in range(len(self.__map_representation)):
             self.__check_bound(i, 0, points_for_flood_fill[0], Direction.TOP)
@@ -153,8 +140,10 @@ class MapFragment:
         return points_for_flood_fill
 
     def __check_bound(self, x: int, y: int, points_for_flood_fill: list[tuple[int, int]],
-                      direction: Direction) -> bool:
-        """ Checks if an edge point is considered as a searched area and adds it to the list if that is true, returns boolean that informs if previous area was closed, possible values for direction is vertical and horizontal """
+                      direction: Direction) -> None:
+        """ Checks if an edge point is considered as a searched area and adds it to the list if that is true,
+        returns boolean that informs if previous area was closed, possible values for direction is vertical and
+        horizontal"""
         if self.__map_representation[y][x] == 0.5:
             if direction == Direction.TOP:
                 points_for_flood_fill.append((x, 255))
@@ -181,8 +170,10 @@ class MapFragment:
         return [x, y]
 
     def convert_point_to_map_coordinates(self, x: int, y: int) -> tuple[float, float]:
-        """ Converts point from map representation into the point coordinates that correspond to the real coordinates that are used by the map """
-        # TODO: musisz się dowiedzieć jak konkretnie ma to być wykorzystane wyświetlane - w jakim formacie będą docelowe współrzędne do wyświetlania oraz do planowania trasy
+        """ Converts point from map representation into the point coordinates that correspond to the real coordinates
+        that are used by the map"""
+        # TODO: musisz się dowiedzieć jak konkretnie ma to być wykorzystane wyświetlane - w jakim formacie będą
+        #  docelowe współrzędne do wyświetlania oraz do planowania trasy
         return ()
 
     def get_image(self) -> np.array:

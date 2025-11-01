@@ -17,9 +17,12 @@ class AreaDetectionController:
 
     def run_area_detection(self):
         """ Detects area for all points that were provided to class """
+        print("Detection of edges is starting")
         detected_edges_map = self.__edge_detector.detect_and_return_merged_bands()
+        print("Detection of edges is finished")
         self.__area_detector = AreaDetector(detected_edges_map, self.__map_center, self.__projection)
 
+        # czy to tutaj musi się dziać???
         coordinates_list = self.__points.toList(self.__points.size()).map(
             lambda f: (ee.Feature(f).geometry().coordinates())
         ).getInfo()  # creating list of coordinates to use for function on the client side
@@ -30,4 +33,4 @@ class AreaDetectionController:
 
         self.__area_detector.extract_points()
 
-        # self.__area_detector.plot_result(coordinates_list)  # delete this later
+        self.__area_detector.plot_result(coordinates_list)

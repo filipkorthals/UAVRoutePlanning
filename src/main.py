@@ -1,7 +1,9 @@
 import ee
+import time
 from AreaDetectionController import AreaDetectionController
 
 if __name__ == "__main__":
+    start = time.time()
     ee.Authenticate()
     ee.Initialize(project="uav-route-planning")
 
@@ -20,3 +22,4 @@ if __name__ == "__main__":
 
     areaDetectionController = AreaDetectionController(points_list)
     areaDetectionController.run_area_detection()
+    print("Total time:", str(time.time() - start))

@@ -2,6 +2,8 @@ import ee
 import geemap
 
 """Class detecting edges in images using different bands from Sentinel2"""
+
+
 class EdgeDetector:
     def __init__(self, points: ee.FeatureCollection, map_center: ee.Geometry.Point, projection: ee.Projection):
         self.__time_periods = [['2017-06-01', '2017-09-01'], ['2018-06-01', '2018-09-01'], ['2019-06-01', '2019-09-01'],
@@ -15,7 +17,6 @@ class EdgeDetector:
         self.__sigmas = [5, 11, 4]  # values of sigma that are used for each of the bands
         self.__distance = 5  # max distance between edges to be connected
         self.__scale = 16  # scale that is used to show results on GEE Map
-        self.__projection = projection
         self.__points = points
         self.__map_center = map_center
         self.__cloud_filter_threshold = 5
