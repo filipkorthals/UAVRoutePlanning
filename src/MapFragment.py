@@ -44,7 +44,7 @@ class MapFragment:
 
     def find_near_map_fragment_center(self, x_direction: int, y_direction: int) -> PointData:
         """ Returns center point of map fragment next to the current one """
-        x, y = self.__center_point.get_coordinates_degrees()
+        x, y = self.__center_point.get_coordinates_meters()
         latitude = x + x_direction * self.__buffer_radius * 2
         longitude = y - y_direction * self.__buffer_radius * 2
         return PointData(latitude, longitude, self.__projection)
@@ -162,12 +162,6 @@ class MapFragment:
         """ Function that returns point ready to plot using matplotlib """
         if point.get_image_coordinates() is None:
             buffer = self.__center_point.get_gee_point().buffer(self.__buffer_radius, proj=self.__projection)
-
-            # ????????? co to był za kod
-            # buffer_origin = buffer.bounds(proj=projection).coordinates().getInfo()[0][3]
-            # buffer_origin = ee.Geometry.Point(buffer_origin, proj=projection)
-            # base = buffer_origin.coordinates().getInfo()  # base -> [y, x]
-            # point_coordinates = point.get_coordinates_degrees()  # coordinates of point -> [y, x]
 
             buffer_origin = buffer.bounds(proj=self.__projection).coordinates().getInfo()[0][3]  # buffer_origin -> [y, x]
             point_coordinates = point.get_coordinates_meters()  # coordinates of point -> [y, x]

@@ -12,6 +12,7 @@ class EdgeDetector:
                                ['2023-06-01', '2023-09-01'], ['2024-06-01',
                                                               '2024-09-01']]  # more time periods can provide more
         # accurate data, but also makes calculations slower
+        # TODO: dodać logi i prześledzić wykrywanie dla jednego koloru bo jest jakieś przepełnienie stosu, ale nie wiem czy to kwestia zbyt dużej liczby załadowanych obszarów czy co :(
         self.__bands = ['B4', 'B3', 'B2']  # bands of satellite imagery that are used for edge detection
         self.__thresholds = [110 if i % 2 == 0 else 120 for i in range(
             6)]  # low and high threshold that is used for each band [low_band1, high_band1, ... ]
@@ -103,7 +104,7 @@ class EdgeDetector:
         visualization = {
             'min': 0.0,
             'max': 0.3,
-            'bands': ['B4', 'B3', 'B2'],
+            'bands': self.__bands,
         }
         resultMap.addLayer(self.__get_RGB_map(), visualization, "Source map")
         for i in range(len(results_list)):

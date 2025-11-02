@@ -66,8 +66,8 @@ class AreaDetector:
             return self.__search_for_the_map_fragment(row_num + 1, point)
 
         if row_num >= len(self.__detected_areas_map):
+            current_map_fragment = self.__detected_areas_map[-1][0] # we start from the last row
             self.__detected_areas_map.append([])
-            current_map_fragment = self.__detected_areas_map[-1][0]  # we start from the last row
             self.__load_map_fragment(current_map_fragment.find_near_map_fragment_center(0, 1), 0,
                                      len(self.__detected_areas_map) - 1)
             return self.__search_for_the_map_fragment(row_num, point)

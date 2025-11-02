@@ -13,7 +13,7 @@ if __name__ == "__main__":
 
     longitude = 53.324167
     latitude = 18.448611
-    point = PointData(latitude, longitude, ee.Projection('EPSG:3035'))  # podobno coś nie tak ze współrzędnymi jest trzeba sprawdzićm, ale błagam nie rozwal kodu :(
+    point = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
 
     longitude2 = 53.325556
     latitude2 = 18.443333
