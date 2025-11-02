@@ -33,8 +33,8 @@ class MapFragment:
 
     def contains_point(self, point: PointData) -> bool:
         """ Function that checks whether a point is inside the map fragment """
-        if self.__get_buffer_around_point(self.__center_point).bounds(proj=self.__projection).intersects(
-                point.get_gee_point()).getInfo():
+        coordinates = self.convert_point_to_img_coordinates(point)
+        if coordinates[0] >= 0 and coordinates[1] >= 0:
             return True
         return False
 
@@ -140,11 +140,11 @@ class MapFragment:
         horizontal"""
         if self.__map_representation[y][x] == 0.5:
             if direction == Direction.TOP:
-                points_for_flood_fill.append((x, 255))
+                points_for_flood_fill.append((x, 254))
             elif direction == Direction.BOTTOM:
                 points_for_flood_fill.append((x, 0))
             elif direction == Direction.LEFT:
-                points_for_flood_fill.append((255, y))
+                points_for_flood_fill.append((254, y))
             elif direction == Direction.RIGHT:
                 points_for_flood_fill.append((0, y))
 
@@ -158,17 +158,32 @@ class MapFragment:
     def get_center_point(self):
         return self.__center_point
 
-    def convert_point_to_img_coordinates(self, point: PointData) -> list[int]:
+    def __get_buffer_origin_coordinates(self) -> tuple[float, float]:
+        buffer_origin_x, buffer_origin_y = self.__center_point.get_coordinates_meters()
+
+        buffer_origin_x -= self.__buffer_radius
+        buffer_origin_y += self.__buffer_radius
+
+        return buffer_origin_x, buffer_origin_y
+
+    def convert_point_to_img_coordinates(self, point: PointData) -> tuple[int, int]:
         """ Function that returns point ready to plot using matplotlib """
         if point.get_image_coordinates() is None:
-            buffer = self.__center_point.get_gee_point().buffer(self.__buffer_radius, proj=self.__projection)
 
-            buffer_origin = buffer.bounds(proj=self.__projection).coordinates().getInfo()[0][3]  # buffer_origin -> [y, x]
-            point_coordinates = point.get_coordinates_meters()  # coordinates of point -> [y, x]
+            buffer_origin_x, buffer_origin_y = self.__get_buffer_origin_coordinates()
+            point_coordinates_x, point_coordinates_y = point.get_coordinates_meters()
 
-            y = int(round((buffer_origin[1] - point_coordinates[1]) / self.__img_resolution))
-            x = int(round((point_coordinates[0] - buffer_origin[0]) / self.__img_resolution))
+            y = int(round((buffer_origin_y - point_coordinates_y) / self.__img_resolution))
+            x = int(round((point_coordinates_x - buffer_origin_x) / self.__img_resolution))
 
-            point.set_image_coordinates(x, y)  # nie wiem czy współrzędne są w dobrej kolejności :)
+            point.set_image_coordinates(x, y)
 
         return point.get_image_coordinates()
+
+    def convert_img_coordinates_to_map_coordinates(self, x_img: int, y_img: int) -> tuple[float, float]:
+        """ Converts point from map representation into the point coordinates that correspond to the real coordinates
+        that are used by the map """
+        center_point_map_coordinates = self.__center_point.get_coordinates_meters()
+        x_map = center_point_map_coordinates[0] - x_img * self.__img_resolution
+        y_map = center_point_map_coordinates[1] - y_img * self.__img_resolution
+        return x_map, y_map

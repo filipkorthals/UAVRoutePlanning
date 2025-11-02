@@ -5,8 +5,8 @@ from Direction import Direction
 import matplotlib.pyplot as plt
 from PointData import PointData
 
-
 """ Class that is responsible of detecting areas in images that contain results of Canny Edge Detection """
+
 
 class AreaDetector:
 
@@ -15,9 +15,10 @@ class AreaDetector:
         self.__projection = projection
         self.__map_center = map_center  # nie wiem czy to jest jeszcze potrzebne, na razie zostaje
         self.__detected_areas_map = [[]]  # MapFragments objects stored in array
-        self.__patch_size = 256
+        self.__patch_size = 255
         self.__img_resolution = 5  # to chyba może być przerzucone w całości do klasy map fragment :)
-        self.__buffer_radius = (self.__patch_size / 2) * self.__img_resolution
+        self.__buffer_radius = ((self.__patch_size - 1) / 2) * self.__img_resolution
+        # we subtract center point from the patch size
         self.__load_map_fragment(self.__map_center, 0, 0)
 
     def __load_map_fragment(self, center_point: PointData, x_pos_to_insert: int, y_pos_to_insert: int):
@@ -66,7 +67,7 @@ class AreaDetector:
             return self.__search_for_the_map_fragment(row_num + 1, point)
 
         if row_num >= len(self.__detected_areas_map):
-            current_map_fragment = self.__detected_areas_map[-1][0] # we start from the last row
+            current_map_fragment = self.__detected_areas_map[-1][0]  # we start from the last row
             self.__detected_areas_map.append([])
             self.__load_map_fragment(current_map_fragment.find_near_map_fragment_center(0, 1), 0,
                                      len(self.__detected_areas_map) - 1)

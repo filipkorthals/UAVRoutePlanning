@@ -39,10 +39,3 @@ class PointData:
     def set_image_coordinates(self, latitude: int, longitude: int):
         """ Sets coordinates of point on MapFragment """
         self.__img_coordinates = (latitude, longitude)
-
-    def convert_point_to_map_coordinates(self, x: int, y: int) -> tuple[float, float]:
-        """ Converts point from map representation into the point coordinates that correspond to the real coordinates
-        that are used by the map"""
-        # TODO: musisz się dowiedzieć jak konkretnie ma to być wykorzystane wyświetlane - w jakim formacie będą
-        #  docelowe współrzędne do wyświetlania oraz do planowania trasy
-        return ()
