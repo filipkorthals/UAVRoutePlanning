@@ -23,9 +23,11 @@ class AreaDetector:
 
     def __load_map_fragment(self, center_point: PointData, x_pos_to_insert: int, y_pos_to_insert: int):
         """ Initiates a map around center point of image """
+        print("Loading map fragment")
         new_map_fragment = MapFragment(center_point, self.__projection, self.__buffer_radius, self.__edge_map,
                                        self.__img_resolution)
         self.__detected_areas_map[y_pos_to_insert].insert(x_pos_to_insert, new_map_fragment)
+        print("Loading map fragment finished")
 
     def __search_row_for_the_map_fragment(self, map_fragment_center: PointData, point: PointData,
                                           row_num: int) -> tuple[int, int]:
@@ -109,7 +111,8 @@ class AreaDetector:
         """ Detects area that contains provided point """
         # TODO: try to paralelize detecting areas
 
-        for point in points:
+        for number, point in enumerate(points):
+            print("Detecting area for point", str(number + 1))
             # tutaj podobno wcześniej była projekcja ale nie wiem czy jest sens sprawdzimy
             # searching for corresponding map fragment for the point
             row_num, col_num = self.__search_for_the_map_fragment(0, point)

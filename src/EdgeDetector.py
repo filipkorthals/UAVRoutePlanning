@@ -93,7 +93,7 @@ class EdgeDetector:
             aggregated_canny = bands_after_canny[0].Or(bands_after_canny[1])
             for i in range(2, len(bands_after_canny)):
                 aggregated_canny = aggregated_canny.Or(bands_after_canny[i])
-            return aggregated_canny.select(aggregated_canny.bandNames().get(0).getInfo())
+            return aggregated_canny.select([aggregated_canny.bandNames().get(0)])
         return bands_after_canny[0]
 
     def __prepare_result_map(self, results_list: ee.Image) -> geemap.Map:
@@ -113,7 +113,7 @@ class EdgeDetector:
         resultMap.addLayer(self.__points, {'color': 'red'}, 'User input points')
         return resultMap
 
-    def __detect_edges(self) -> list:
+    def __detect_edges(self) -> list[ee.Image]:
         """ Detects edged using Canny detector for selected periods """
         aggregated_canny_results = []
         for time_period in self.__time_periods:

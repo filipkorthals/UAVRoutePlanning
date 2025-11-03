@@ -23,4 +23,4 @@ if __name__ == "__main__":
 
     areaDetectionController = AreaDetectionController(points_list)
     areaDetectionController.run_area_detection()
-    print("Total time:", str(time.time() - start))
+    print("Total time:", str(time.time() - start), "seconds")

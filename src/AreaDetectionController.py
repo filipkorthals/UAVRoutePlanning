@@ -25,8 +25,12 @@ class AreaDetectionController:
         print("Detection of edges is finished")
         self.__area_detector = AreaDetector(detected_edges_map, self.__map_center, self.__projection)
 
+        print("Detection of areas is starting")
         self.__area_detector.detect_areas(self.__points_list)
+        print("Detection of areas is finished")
 
+        print("Point extraction is starting")
         self.__area_detector.extract_points()
+        print("Point extraction is finished")
 
         self.__area_detector.plot_result(self.__points_list)
