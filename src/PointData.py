@@ -9,7 +9,6 @@ class PointData:
         self.__coordinates_degrees = (latitude, longitude)
         self.__gee_point = gee_point if gee_point is not None else ee.Geometry.Point(latitude, longitude)
         self.__coordinates_meters = None
-        self.__img_coordinates = None
         self.__projection = projection
 
     @classmethod
@@ -17,6 +16,14 @@ class PointData:
         """ Construction of class object using Google Earth Engine Point """
         latitude, longitude = gee_point.coordinates().getInfo()
         return cls(latitude, longitude, projection, gee_point)
+
+    @classmethod
+    def from_coordinates_meters(cls, x: float, y: float, projection: ee.Projection):
+        """ Construction of class object using coordinates in meters """
+        point = ee.Geometry.Point([x, y], projection).transform("EPSG:4326")
+        created_point = PointData.from_gee_point(point, projection)
+        created_point.__coordinates_meters = x, y
+        return created_point
 
     def get_gee_point(self):
         """ Returns representation of point on Google Earth Engine server side """
@@ -31,11 +38,3 @@ class PointData:
         if self.__coordinates_meters is None:
             self.__coordinates_meters = self.__gee_point.transform(self.__projection).coordinates().getInfo()
         return self.__coordinates_meters
-
-    def get_image_coordinates(self):
-        """ Returns coordinates of point on MapFragment """
-        return self.__img_coordinates
-
-    def set_image_coordinates(self, latitude: int, longitude: int):
-        """ Sets coordinates of point on MapFragment """
-        self.__img_coordinates = (latitude, longitude)

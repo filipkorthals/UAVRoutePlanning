@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from Direction import Direction
 from PointData import PointData
 
+FLOOD_FILL_COLOR = 0.5
+
 """ Class that represents map fragments that are stored in AreaDetector class, makes map operations easier """
 
 
@@ -34,8 +36,11 @@ class MapFragment:
     def contains_point(self, point: PointData) -> bool:
         """ Function that checks whether a point is inside the map fragment """
         coordinates = self.convert_point_to_img_coordinates(point)
-        if coordinates[0] >= 0 and coordinates[1] >= 0:
+        print("Calculated coordinates in image:", str(coordinates[0]), str(coordinates[1]))
+        if 0 <= coordinates[0] < 255 and 0 <= coordinates[1] < 255:
+            print("Point is inside current map fragment")
             return True
+        print('Point isn\'t inside current map fragment')
         return False
 
     def __get_buffer_around_point(self, point: PointData) -> ee.Geometry:
@@ -47,11 +52,11 @@ class MapFragment:
         x, y = self.__center_point.get_coordinates_meters()
         latitude = x + x_direction * self.__buffer_radius * 2
         longitude = y - y_direction * self.__buffer_radius * 2
-        return PointData(latitude, longitude, self.__projection)
+        return PointData.from_coordinates_meters(latitude, longitude, self.__projection)
 
     def run_flood_fill(self, x: int, y: int):
-        """ Runs flood fill on map fragment - detected areas have value of 0.5 to differentiate them from the edges """
-        self.__map_representation[:] = flood_fill(self.__map_representation, (y, x), 0.5)
+        """ Runs flood fill on map fragment - detected areas have value of FLOOD_FILL_COLOR to differentiate them from the edges """
+        self.__map_representation[:] = flood_fill(self.__map_representation, (y, x), FLOOD_FILL_COLOR)
 
     def apply_two_thresholds(self, threshold1: float = 0.0, threshold2: float = 1.0):
         """ Applies thresholding with two thresholds on map fragment to extract detected areas from image """
@@ -138,7 +143,7 @@ class MapFragment:
         """ Checks if an edge point is considered as a searched area and adds it to the list if that is true,
         returns boolean that informs if previous area was closed, possible values for direction is vertical and
         horizontal"""
-        if self.__map_representation[y][x] == 0.5:
+        if self.__map_representation[y][x] == FLOOD_FILL_COLOR:
             if direction == Direction.TOP:
                 points_for_flood_fill.append((x, 254))
             elif direction == Direction.BOTTOM:
@@ -168,22 +173,20 @@ class MapFragment:
 
     def convert_point_to_img_coordinates(self, point: PointData) -> tuple[int, int]:
         """ Function that returns point ready to plot using matplotlib """
-        if point.get_image_coordinates() is None:
 
-            buffer_origin_x, buffer_origin_y = self.__get_buffer_origin_coordinates()
-            point_coordinates_x, point_coordinates_y = point.get_coordinates_meters()
+        buffer_origin_x, buffer_origin_y = self.__get_buffer_origin_coordinates()
+        point_coordinates_x, point_coordinates_y = point.get_coordinates_meters()
 
-            y = int(round((buffer_origin_y - point_coordinates_y) / self.__img_resolution))
-            x = int(round((point_coordinates_x - buffer_origin_x) / self.__img_resolution))
+        y = int(round((buffer_origin_y - point_coordinates_y) / self.__img_resolution))
+        x = int(round((point_coordinates_x - buffer_origin_x) / self.__img_resolution))
 
-            point.set_image_coordinates(x, y)
-
-        return point.get_image_coordinates()
+        return x, y
 
     def convert_img_coordinates_to_map_coordinates(self, x_img: int, y_img: int) -> tuple[float, float]:
         """ Converts point from map representation into the point coordinates that correspond to the real coordinates
         that are used by the map """
-        center_point_map_coordinates = self.__center_point.get_coordinates_meters()
-        x_map = center_point_map_coordinates[0] - x_img * self.__img_resolution
-        y_map = center_point_map_coordinates[1] - y_img * self.__img_resolution
+        # TODO: nie wiem czy ta funkcja działa trzeba sprawdzić
+        buffer_origin_coordinates = self.__get_buffer_origin_coordinates()
+        x_map = buffer_origin_coordinates[0] + x_img * self.__img_resolution * 2
+        y_map = buffer_origin_coordinates[1] - y_img * self.__img_resolution * 2
         return x_map, y_map

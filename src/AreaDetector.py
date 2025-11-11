@@ -28,10 +28,15 @@ class AreaDetector:
                                        self.__img_resolution)
         self.__detected_areas_map[y_pos_to_insert].insert(x_pos_to_insert, new_map_fragment)
         print("Loading map fragment finished")
+        print("\nStructure of loaded map: ")
+        for row_id, row in enumerate(self.__detected_areas_map):
+            print(str(row_id + 1) + ". row length:", int(len(row)))
+        print('\n')
 
     def __search_row_for_the_map_fragment(self, map_fragment_center: PointData, point: PointData,
                                           row_num: int) -> tuple[int, int]:
         """ Searches for map fragment in row and returns coordinates of map fragment as [row_num, col_num] """
+        print("Searching in row", row_num)
         direction_x = 0
         point_coordinates = point.get_coordinates_meters()
         map_fragment_center_coordinates = map_fragment_center.get_coordinates_meters()
@@ -43,18 +48,26 @@ class AreaDetector:
         if direction_x >= 0:
             for col_num in range(len(self.__detected_areas_map[row_num])):
                 if self.__detected_areas_map[row_num][col_num].contains_point(point):
+                    print("Point is found on current map fragment - row", row_num, "col", col_num, "\n")
                     return row_num, col_num
             # if there is no buffer that contains searched point, we have to add next one
-            current_map_fragment = self.__detected_areas_map[row_num][-1]
-            self.__load_map_fragment(current_map_fragment.find_near_map_fragment_center(direction_x, 0),
-                                     len(self.__detected_areas_map[row_num]), row_num)
-            return row_num, len(self.__detected_areas_map[row_num]) - 1
+            while True:
+                current_map_fragment = self.__detected_areas_map[row_num][-1]
+                print("Loading map to the right")
+                self.__load_map_fragment(current_map_fragment.find_near_map_fragment_center(direction_x, 0),
+                                         len(self.__detected_areas_map[row_num]), row_num)
+                if self.__detected_areas_map[row_num][-1].contains_point(point):
+                    print("Point is found on current map fragment - row", row_num, "col",
+                          len(self.__detected_areas_map[row_num]) - 1, "\n")
+                    return row_num, len(self.__detected_areas_map[row_num]) - 1
 
         else:
             while True:
                 current_map_fragment = self.__detected_areas_map[row_num][0]
-                self.__load_map_fragment(current_map_fragment.find_near_map_fragment_center(-1, 0), 0, row_num)
-                if self.__detected_areas_map[row_num][0].contains_point(point.get_gee_point()):
+                print("Loading map to the left")
+                self.__load_map_fragment(current_map_fragment.find_near_map_fragment_center(direction_x, 0), 0, row_num)
+                if self.__detected_areas_map[row_num][0].contains_point(point):
+                    print("Point is found on current map fragment - row", row_num, "col", 0, "\n")
                     return row_num, 0
 
     def __search_for_the_map_fragment(self, row_num: int, point: PointData) -> tuple[int, int]:
@@ -65,12 +78,14 @@ class AreaDetector:
         if row_num < 0:
             self.__detected_areas_map.insert(0, [])  # new row at the top is added
             current_map_fragment = self.__detected_areas_map[1][0]  # we start looking from the lower row
+            print("Loading map up")
             self.__load_map_fragment(current_map_fragment.find_near_map_fragment_center(0, -1), 0, 0)
             return self.__search_for_the_map_fragment(row_num + 1, point)
 
         if row_num >= len(self.__detected_areas_map):
             current_map_fragment = self.__detected_areas_map[-1][0]  # we start from the last row
             self.__detected_areas_map.append([])
+            print("Loading map down")
             self.__load_map_fragment(current_map_fragment.find_near_map_fragment_center(0, 1), 0,
                                      len(self.__detected_areas_map) - 1)
             return self.__search_for_the_map_fragment(row_num, point)
@@ -82,13 +97,14 @@ class AreaDetector:
         if (map_fragment_center.get_coordinates_meters()[1] - point_coordinates[1]) <= -self.__buffer_radius:
             direction_y = -1
         elif (map_fragment_center.get_coordinates_meters()[1] - point_coordinates[
-            1]) >= self.__buffer_radius:  # nie wiem czy nie trzeba tego podzielić przez resolution?? - ale chyba nie
+            1]) >= self.__buffer_radius:
             direction_y = 1
 
         if direction_y == -1:
             if row_num - 1 < 0:
                 current_map_fragment = self.__detected_areas_map[0][0]
                 self.__detected_areas_map.insert(0, [])  # new row at the top is added
+                print("Loading map up")
                 self.__load_map_fragment(current_map_fragment.find_near_map_fragment_center(0, -1), 0,
                                          row_num)
                 return self.__search_for_the_map_fragment(row_num + 1, point)
@@ -99,6 +115,7 @@ class AreaDetector:
             if row_num + 1 >= len(self.__detected_areas_map):
                 current_map_fragment = self.__detected_areas_map[row_num][0]
                 self.__detected_areas_map.append([])
+                print("Loading map down")
                 self.__load_map_fragment(current_map_fragment.find_near_map_fragment_center(0, direction_y), 0,
                                          row_num + 1)
             # we are moving searching to the next row
@@ -113,7 +130,6 @@ class AreaDetector:
 
         for number, point in enumerate(points):
             print("Detecting area for point", str(number + 1))
-            # tutaj podobno wcześniej była projekcja ale nie wiem czy jest sens sprawdzimy
             # searching for corresponding map fragment for the point
             row_num, col_num = self.__search_for_the_map_fragment(0, point)
 
@@ -135,15 +151,19 @@ class AreaDetector:
 
             new_row_num, new_col_num = (0, 0)
             if direction == Direction.TOP:
+                print("Detecting adjacent area top")
                 center_point = found_map_fragment.find_near_map_fragment_center(0, -1)
                 new_row_num, new_col_num = self.__search_for_the_map_fragment(row_num - 1, center_point)
             elif direction == Direction.BOTTOM:
+                print("Detecting adjacent area bottom")
                 center_point = found_map_fragment.find_near_map_fragment_center(0, 1)
                 new_row_num, new_col_num = self.__search_for_the_map_fragment(row_num + 1, center_point)
             elif direction == Direction.LEFT:
+                print("Detecting adjacent area left")
                 center_point = found_map_fragment.find_near_map_fragment_center(-1, 0)
                 new_row_num, new_col_num = self.__search_for_the_map_fragment(row_num, center_point)
             else:
+                print("Detecting adjacent area right")
                 center_point = found_map_fragment.find_near_map_fragment_center(1, 0)
                 new_row_num, new_col_num = self.__search_for_the_map_fragment(row_num, center_point)
 
@@ -198,7 +218,7 @@ class AreaDetector:
                     prepared_coordinates = map_fragment.convert_point_to_img_coordinates(point)
                     plt.plot(prepared_coordinates[0], prepared_coordinates[1], 'ro', markersize=5)
                 plt.axis("off")
-                plt.savefig('Canny' + str(counter) + '.jpg', dpi=500, bbox_inches='tight')
+                plt.savefig('Area_part_' + str(counter) + '.jpg', dpi=500, bbox_inches='tight')
                 counter += 1
 
     def get_map_fragment(self, row_num: int, col_num: int):
