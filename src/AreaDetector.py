@@ -25,7 +25,7 @@ class AreaDetector:
         """ Initiates a map around center point of image """
         print("Loading map fragment")
         new_map_fragment = MapFragment(center_point, self.__projection, self.__buffer_radius, self.__edge_map,
-                                       self.__img_resolution)
+                                       self.__img_resolution, self.__patch_size)
         self.__detected_areas_map[y_pos_to_insert].insert(x_pos_to_insert, new_map_fragment)
         print("Loading map fragment finished")
         print("\nStructure of loaded map: ")
@@ -179,10 +179,8 @@ class AreaDetector:
                 # we check if we have to detect anything in adjacent map fragments
                 self.detect_in_adjacent_map_fragments(adjacent_fragment, new_row_num)
 
-    def extract_points(self) -> list[tuple[float, float]]:
-        """ Returns outline points from detected area """
-        # dla filtrów liniowych jest też wersja, która działa na CUDA -
-        # nie wiem czy jest sens ją implementować
+    def extract_points(self) -> tuple[list[tuple[float, float]], list[tuple[float, float]]]:
+        """ Returns two lists with outline points from detected area. First list contains the outer contour, the second one contains the inner contour """
         counter = 1
         for row in range(len(self.__detected_areas_map)):
             for column in range(len(self.__detected_areas_map[row])):
@@ -191,7 +189,7 @@ class AreaDetector:
                 plt.figure()
                 plt.imshow(self.__detected_areas_map[row][column].get_image(), cmap='gray', vmin=0, vmax=1)
                 plt.axis("off")
-                plt.savefig('Thresholding.jpg', dpi=500, bbox_inches='tight')
+                plt.savefig(f'results/thresholding/Thresholding_{str(counter)}.jpg', dpi=500, bbox_inches='tight')
                 plt.close()
 
                 self.__detected_areas_map[row][column].apply_morphology_close(7)
@@ -199,12 +197,13 @@ class AreaDetector:
                 plt.figure()
                 plt.imshow(self.__detected_areas_map[row][column].get_image(), cmap='gray', vmin=0, vmax=1)
                 plt.axis("off")
-                plt.savefig('Morhphology.jpg', dpi=500, bbox_inches='tight')
+                plt.savefig(f'results/morphology/Morhphology__{str(counter)}.jpg', dpi=500, bbox_inches='tight')
                 plt.close()
 
                 self.__detected_areas_map[row][column].apply_one_threshold()
-                self.__detected_areas_map[row][column].get_boundary_points()
-        return []
+                self.__detected_areas_map[row][column].get_boundary_points(counter)
+                counter += 1
+        return [], []
 
     def plot_result(self, points: list[PointData]) -> None:
         """ Plots result of area detection """
@@ -218,7 +217,7 @@ class AreaDetector:
                     prepared_coordinates = map_fragment.convert_point_to_img_coordinates(point)
                     plt.plot(prepared_coordinates[0], prepared_coordinates[1], 'ro', markersize=5)
                 plt.axis("off")
-                plt.savefig('Area_part_' + str(counter) + '.jpg', dpi=500, bbox_inches='tight')
+                plt.savefig(f'results/Area_part_{str(counter)}.jpg', dpi=500, bbox_inches='tight')
                 counter += 1
 
     def get_map_fragment(self, row_num: int, col_num: int):

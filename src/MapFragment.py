@@ -8,19 +8,22 @@ from Direction import Direction
 from PointData import PointData
 
 FLOOD_FILL_COLOR = 0.5
+BLACK = 0
+WHITE = 255
 
 """ Class that represents map fragments that are stored in AreaDetector class, makes map operations easier """
 
 
 class MapFragment:
     def __init__(self, center_point: PointData, projection: ee.Projection, buffer_radius: float,
-                 edge_map: geemap.Map, img_resolution: int):
+                 edge_map: geemap.Map, img_resolution: int, patch_size: int):
         self.__buffer_radius = buffer_radius
         self.__img_resolution = img_resolution
         self.__projection = ee.Projection(projection)
         self.__center_point = center_point
         self.__scale = 5
         self.__map_representation = self.__move_rectangle_to_numpy(edge_map)
+        self.__patch_size = patch_size
 
     def __move_rectangle_to_numpy(self, edge_map: geemap.Map) -> np.array:
         """ Converts map rectangle to NumPy array """
@@ -37,7 +40,7 @@ class MapFragment:
         """ Function that checks whether a point is inside the map fragment """
         coordinates = self.convert_point_to_img_coordinates(point)
         print("Calculated coordinates in image:", str(coordinates[0]), str(coordinates[1]))
-        if 0 <= coordinates[0] < 255 and 0 <= coordinates[1] < 255:
+        if 0 <= coordinates[0] < self.__patch_size and 0 <= coordinates[1] < self.__patch_size:
             print("Point is inside current map fragment")
             return True
         print('Point isn\'t inside current map fragment')
@@ -63,18 +66,18 @@ class MapFragment:
         for y in range(len(self.__map_representation)):
             for x in range(len(self.__map_representation[y])):
                 if threshold1 < self.__map_representation[y][x] < threshold2:
-                    self.__map_representation[y][x] = 255
+                    self.__map_representation[y][x] = WHITE
                 else:
-                    self.__map_representation[y][x] = 0
+                    self.__map_representation[y][x] = BLACK
         self.__map_representation = self.__map_representation.astype(np.uint8)
 
     def apply_one_threshold(self, threshold: float = 0):
         for y in range(len(self.__map_representation)):
             for x in range(len(self.__map_representation[y])):
                 if self.__map_representation[y][x] > threshold:
-                    self.__map_representation[y][x] = 255
+                    self.__map_representation[y][x] = WHITE
                 else:
-                    self.__map_representation[y][x] = 0
+                    self.__map_representation[y][x] = BLACK
         self.__map_representation = self.__map_representation.astype(np.uint8)
 
     def apply_morphology_close(self, kernel_size: int = 5):
@@ -83,7 +86,7 @@ class MapFragment:
         kernel = np.ones((kernel_size, kernel_size), np.uint8)
         self.__map_representation = cv.morphologyEx(self.__map_representation, cv.MORPH_CLOSE, kernel)
 
-    def get_boundary_points(self) -> list[int]:
+    def get_boundary_points(self, counter: int) -> list[int]:
         """ Returns points of the detected areas boundaries """
         contours, hierarchy = cv.findContours(self.__map_representation, cv.RETR_CCOMP, cv.CHAIN_APPROX_TC89_KCOS)
         # tymczasowo -  rysowanie rezultatu
@@ -94,7 +97,7 @@ class MapFragment:
         for contour in contours:
             cv.drawContours(image_contour, [contour], -1, (255, 0, 255), 2)
 
-            # Draw the points on the points image
+        # Draw the points on the points image
         for contour in contours:
             for point in contour:
                 cv.circle(image_points, tuple(point[0]), 1, (128, 0, 128), -1)
@@ -116,10 +119,12 @@ class MapFragment:
         plt.imshow(image_points_rgb)
         plt.title("Contour Points")
         plt.axis('off')
-        plt.savefig('Contour.jpg', dpi=500, bbox_inches='tight')
+        plt.savefig(f'results\contour_detection\Contour_{counter}.jpg', dpi=500, bbox_inches='tight')
         plt.close()
 
         plt.show()
+
+        # hierarchy in cv.RETR_CCOMP mode describes every contour as: [next, prev, child, parent] where each element is index of contour on the contours list
 
         return
 
@@ -145,11 +150,11 @@ class MapFragment:
         horizontal"""
         if self.__map_representation[y][x] == FLOOD_FILL_COLOR:
             if direction == Direction.TOP:
-                points_for_flood_fill.append((x, 254))
+                points_for_flood_fill.append((x, self.__patch_size - 1))
             elif direction == Direction.BOTTOM:
                 points_for_flood_fill.append((x, 0))
             elif direction == Direction.LEFT:
-                points_for_flood_fill.append((254, y))
+                points_for_flood_fill.append((self.__patch_size - 1, y))
             elif direction == Direction.RIGHT:
                 points_for_flood_fill.append((0, y))
 
