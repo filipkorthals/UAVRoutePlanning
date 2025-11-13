@@ -30,7 +30,8 @@ class AreaDetectionController:
         print("Detection of areas is finished")
 
         print("Point extraction is starting")
-        self.__area_detector.extract_points()
+        self.__area_detector.prepare_for_points_extraction()
+        # self.__detected_areas_map[row][column].get_boundary_points(counter)
         print("Point extraction is finished")
 
         self.__area_detector.plot_result(self.__points_list)

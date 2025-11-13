@@ -126,6 +126,8 @@ class MapFragment:
 
         # hierarchy in cv.RETR_CCOMP mode describes every contour as: [next, prev, child, parent] where each element is index of contour on the contours list
 
+
+
         return
 
     def check_bounds(self) -> tuple[
