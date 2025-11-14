@@ -86,49 +86,6 @@ class MapFragment:
         kernel = np.ones((kernel_size, kernel_size), np.uint8)
         self.__map_representation = cv.morphologyEx(self.__map_representation, cv.MORPH_CLOSE, kernel)
 
-    def get_boundary_points(self, counter: int) -> list[int]:
-        """ Returns points of the detected areas boundaries """
-        contours, hierarchy = cv.findContours(self.__map_representation, cv.RETR_CCOMP, cv.CHAIN_APPROX_TC89_KCOS)
-        # tymczasowo -  rysowanie rezultatu
-        image_contour = cv.cvtColor(self.__map_representation, cv.COLOR_GRAY2BGR)  # Image for contours
-        image_points = cv.cvtColor(self.__map_representation, cv.COLOR_GRAY2BGR)  # Image for points
-
-        # Draw the contours on the contour image
-        for contour in contours:
-            cv.drawContours(image_contour, [contour], -1, (255, 0, 255), 2)
-
-        # Draw the points on the points image
-        for contour in contours:
-            for point in contour:
-                cv.circle(image_points, tuple(point[0]), 1, (128, 0, 128), -1)
-
-        image_contour_rgb = cv.cvtColor(image_contour, cv.COLOR_BGR2RGB)
-        image_points_rgb = cv.cvtColor(image_points, cv.COLOR_BGR2RGB)
-
-        # Plot side by side
-        plt.figure(figsize=(12, 6))
-
-        # Contours
-        plt.subplot(1, 2, 1)
-        plt.imshow(image_contour_rgb)
-        plt.title("Contours")
-        plt.axis('off')
-
-        # Points
-        plt.subplot(1, 2, 2)
-        plt.imshow(image_points_rgb)
-        plt.title("Contour Points")
-        plt.axis('off')
-        plt.savefig(f'results\contour_detection\Contour_{counter}.jpg', dpi=500, bbox_inches='tight')
-        plt.close()
-
-        plt.show()
-
-        # hierarchy in cv.RETR_CCOMP mode describes every contour as: [next, prev, child, parent] where each element is index of contour on the contours list
-
-
-
-        return
 
     def check_bounds(self) -> tuple[
         list[tuple[int, int]], list[tuple[int, int]], list[tuple[int, int]], list[tuple[int, int]]]:

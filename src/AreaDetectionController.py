@@ -31,7 +31,7 @@ class AreaDetectionController:
 
         print("Point extraction is starting")
         self.__area_detector.prepare_for_points_extraction()
-        # self.__detected_areas_map[row][column].get_boundary_points(counter)
+        self.__area_detector.get_boundary_points()  # this function returns points for path planning
         print("Point extraction is finished")
 
         self.__area_detector.plot_result(self.__points_list)
