@@ -7,15 +7,13 @@ from PointData import PointData
 
 class EdgeDetector:
     def __init__(self, points: ee.FeatureCollection, map_center: PointData):
-        self.__time_periods = [['2017-06-01', '2017-09-01'], ['2018-06-01', '2018-09-01'], ['2019-06-01', '2019-09-01'],
-                               ['2020-06-01', '2020-09-01'], ['2021-06-01', '2021-09-01'], ['2022-06-01', '2022-09-01'],
-                               ['2023-06-01', '2023-09-01'], ['2024-06-01',
-                                                              '2024-09-01']]  # more time periods can provide more
+        self.__time_periods = [['2023-05-01', '2023-10-01'], ['2024-05-01', '2024-10-01'],
+                               ['2025-05-01', '2025-10-01']]  # more time periods can provide more
         # accurate data, but also makes calculations slower
-        self.__bands = ['B4', 'B3', 'B2']  # bands of satellite imagery that are used for edge detection
-        self.__thresholds = [110 if i % 2 == 0 else 120 for i in range(
-            6)]  # low and high threshold that is used for each band [low_band1, high_band1, ... ]
-        self.__sigmas = [5, 11, 4]  # values of sigma that are used for each of the bands
+        self.__bands = ['B11']  # bands of satellite imagery that are used for edge detection
+        self.__thresholds = [200, 210, 0.06,
+                             0.1]  # low and high threshold that is used for each band [low_band1, high_band1, ... ]
+        self.__sigmas = [7.5, 5]  # values of sigma that are used for each of the bands
         self.__distance = 5  # max distance between edges to be connected
         self.__scale = 16  # scale that is used to show results on GEE Map
         self.__points = points
@@ -68,7 +66,17 @@ class EdgeDetector:
             ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', self.__cloud_filter_threshold)
         )
                 .map(self.__mask_s2_clouds)
-                .mean())
+                .first())
+
+    def __get_NDVI(self, time_period: list) -> ee.Image:
+        """ Function that calculates NDVI """
+        bands = (ee.ImageCollection('COPERNICUS/S2_SR_HARMONIZED')
+                 .filterDate(time_period[0], time_period[1])
+                 .filterBounds(self.__map_center.get_gee_point())
+                 .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', self.__cloud_filter_threshold))
+                 .select(['B8', 'B4'])
+                 .mean())
+        return bands.normalizedDifference(['B8', 'B4']).rename('NDVI')
 
     def __run_canny_for_bands(self, bands_data: list) -> ee.Image:
         """ Function runs Canny edge detection algorithm for every provided band """
@@ -100,16 +108,32 @@ class EdgeDetector:
         resultMap = geemap.Map()
         center_coords = self.__map_center.get_coordinates_degrees()
         resultMap.set_center(center_coords[0], center_coords[1], self.__scale)
-        visualization = {
+        visualization_RGB = {
             'min': 0.0,
             'max': 0.3,
-            'bands': self.__bands,
+            'bands': ['B4', 'B3', 'B2'],
         }
-        resultMap.addLayer(self.__get_RGB_map(), visualization, "Source map")
+        visualization_NDVI = {
+            'min': -1,
+            'max': 1,
+            'palette': [
+                'blue',
+                'white',
+                'green'
+            ],
+        }
+        resultMap.addLayer(self.__get_RGB_map(), visualization_RGB, "Source map")
+        resultMap.addLayer(
+            self.__get_NDVI([self.__time_periods[0][0], self.__time_periods[-1][0]]),
+            visualization_NDVI,
+            "NDVI"
+        )
         for i in range(len(results_list)):
-            resultMap.addLayer(results_list[i].updateMask(results_list[i]), {"palette": ["ffffff"]},
+            resultMap.addLayer(results_list[i].selfMask(), {"palette": ["ffffff"]},
                                self.__time_periods[i][0] + " - " + self.__time_periods[i][1])
         resultMap.addLayer(self.__points, {'color': 'red'}, 'User input points')
+        results = ee.ImageCollection(results_list).toBands().reduce(ee.Reducer.max())
+        resultMap.addLayer(self.__apply_morphology(results).selfMask(), {'palette': ['ffffff']}, "Total result")
         return resultMap
 
     def __detect_edges(self) -> list[ee.Image]:
@@ -119,8 +143,16 @@ class EdgeDetector:
             bands_data = []
             for band in self.__bands:
                 bands_data.append(self.__get_band_image(band, time_period))
+            bands_data.append(self.__get_NDVI(time_period))
             aggregated_canny_results.append(self.__run_canny_for_bands(bands_data))
         return aggregated_canny_results
+
+    def __apply_morphology(self, image: ee.Image) -> ee.Image:
+        """ Function that is used to apply morphological opening and closing on prepared result image """
+        image = image.selfMask().unmask(0).focalMax(1)  # applying dilation to make edges thicker
+        image = image.focalMin(1).focalMax(1)  # morphological opening
+        image = image.focalMax(4).focalMin(4)  # morphological closing, radius is bigger to close bigger gaps
+        return image.focalMin(1).selfMask()
 
     def detect_and_show_on_map(self) -> geemap.Map:
         """ You can use this function to show results on GEE Map """
@@ -134,4 +166,4 @@ class EdgeDetector:
 
         # Merging all the detected edges into one band
         results = ee.ImageCollection(aggregated_canny_results).toBands()
-        return results.reduce(ee.Reducer.max())
+        return self.__apply_morphology(results.reduce(ee.Reducer.max()))

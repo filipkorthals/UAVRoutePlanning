@@ -81,8 +81,6 @@ class AreaDetector:
                     return row_num, 0
 
     def __search_for_the_map_fragment(self, row_num: int, point: PointData) -> tuple[int, int]:
-        # UWAGA - JEŻELI PUNKTY BĘDĄ W BARDZO DUŻYCH ODLEGŁOŚCIACH OD SIEBIE - WIĘCEJ NIŻ JEDEN SEGMENT TO SIĘ WYWALI
-        # BO NIE ZNAJDZIE FRAGMENTU I NIE BĘDZIE WIEDZIAŁ JAK DODAĆ
         """ Searches self.__detected_areas_map for row where point is located and returns map fragment coordinates as
         [row_num, col_num]"""
         if row_num < 0:

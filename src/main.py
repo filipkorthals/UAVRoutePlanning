@@ -11,23 +11,25 @@ if __name__ == "__main__":
     # code to execute
     """ Detection using multiple points """
 
-    longitude = 53.324389
-    latitude = 18.455298
+    longitude, latitude = 53.324389, 18.455298
     point = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
 
-    longitude2 = 53.325556
-    latitude2 = 18.443333
+    longitude2, latitude2 = 53.325556, 18.443333
     point2 = PointData(latitude2, longitude2, ee.Projection('EPSG:3035'))
 
-    longitude3 = 53.328713
-    latitude3 = 18.447336
+    longitude3, latitude3 = 53.328713, 18.447336
     point3 = PointData(latitude3, longitude3, ee.Projection('EPSG:3035'))
 
-    longitude4 = 53.324253
-    latitude4 = 18.450105
+    longitude4, latitude4 = 53.324253, 18.450105
     point4 = PointData(latitude4, longitude4, ee.Projection('EPSG:3035'))
 
-    points_list = [point, point2, point3, point4]
+    longitude5, latitude5 = 53.318886, 18.426898
+    point5 = PointData(latitude5, longitude5, ee.Projection('EPSG:3035'))
+
+    longitude6, latitude6 = 53.318886, 18.426898
+    point6 = PointData(latitude6, longitude6, ee.Projection('EPSG:3035'))
+
+    points_list = [point, point2, point3, point4, point5, point6]
 
     areaDetectionController = AreaDetectionController(points_list)
     areaDetectionController.run_area_detection()
