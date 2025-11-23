@@ -4,8 +4,8 @@ import numpy as np
 from skimage.segmentation import flood_fill
 import cv2 as cv
 import matplotlib.pyplot as plt
-from Direction import Direction
-from PointData import PointData
+from .Direction import Direction
+from .PointData import PointData
 
 FLOOD_FILL_COLOR = 0.5
 BLACK = 0
@@ -127,7 +127,7 @@ class MapFragment:
     def get_center_point(self):
         return self.__center_point
 
-    def __get_buffer_origin_coordinates(self) -> tuple[float, float]:
+    def get_buffer_origin_coordinates(self) -> tuple[float, float]:
         buffer_origin_x, buffer_origin_y = self.__center_point.get_coordinates_meters()
 
         buffer_origin_x -= self.__buffer_radius
@@ -138,7 +138,7 @@ class MapFragment:
     def convert_point_to_img_coordinates(self, point: PointData) -> tuple[int, int]:
         """ Function that returns point ready to plot using matplotlib """
 
-        buffer_origin_x, buffer_origin_y = self.__get_buffer_origin_coordinates()
+        buffer_origin_x, buffer_origin_y = self.get_buffer_origin_coordinates()
         point_coordinates_x, point_coordinates_y = point.get_coordinates_meters()
 
         y = int(round((buffer_origin_y - point_coordinates_y) / self.__img_resolution))
@@ -150,7 +150,7 @@ class MapFragment:
         """ Converts point from map representation into the point coordinates that correspond to the real coordinates
         that are used by the map """
         # TODO: nie wiem czy ta funkcja działa trzeba sprawdzić
-        buffer_origin_coordinates = self.__get_buffer_origin_coordinates()
+        buffer_origin_coordinates = self.get_buffer_origin_coordinates()
         x_map = buffer_origin_coordinates[0] + x_img * self.__img_resolution * 2
         y_map = buffer_origin_coordinates[1] - y_img * self.__img_resolution * 2
         return x_map, y_map

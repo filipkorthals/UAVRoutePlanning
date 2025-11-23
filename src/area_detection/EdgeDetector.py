@@ -1,6 +1,6 @@
 import ee
 import geemap
-from PointData import PointData
+from .PointData import PointData
 
 """Class detecting edges in images using different bands from Sentinel2"""
 

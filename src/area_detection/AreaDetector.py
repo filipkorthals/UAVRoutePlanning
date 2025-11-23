@@ -1,11 +1,11 @@
 import ee
 import geemap
-from MapFragment import MapFragment
-from Direction import Direction
+from .MapFragment import MapFragment
+from .Direction import Direction
+from .PointData import PointData
 import matplotlib.pyplot as plt
 import numpy as np
 import cv2 as cv
-from PointData import PointData
 import os
 
 """ Class that is responsible of detecting areas in images that contain results of Canny Edge Detection """
@@ -24,12 +24,10 @@ class AreaDetector:
         self.__buffer_radius = ((self.__patch_size - 1) / 2) * self.__img_resolution
         # we subtract center point from the patch size
         self.__load_map_fragment(self.__map_center, 0, 0)
-        self.__boundary_points = None
-        self.__boundary_points_hierarchy = None
-        os.makedirs('results', exist_ok=True)
-        os.makedirs('results/thresholding', exist_ok=True)
-        os.makedirs('results/morphology', exist_ok=True)
-        os.makedirs('results/contour_detection', exist_ok=True)
+        os.makedirs('src/area_detection/results', exist_ok=True)
+        os.makedirs('src/area_detection/results/thresholding', exist_ok=True)
+        os.makedirs('src/area_detection/results/morphology', exist_ok=True)
+        os.makedirs('src/area_detection/results/contour_detection', exist_ok=True)
 
     def __load_map_fragment(self, center_point: PointData, x_pos_to_insert: int, y_pos_to_insert: int):
         """ Initiates a map around center point of image """
@@ -132,7 +130,7 @@ class AreaDetector:
         # if current row is correct, we start searching inside it
         return self.__search_row_for_the_map_fragment(map_fragment_center, point, row_num)
 
-    def detect_areas(self, points: list[PointData]) -> None:
+    def run_area_detection(self, points: list[PointData]) -> None:
         """ Detects area that contains provided point """
         # TODO: try to paralelize detecting areas
 
@@ -234,7 +232,7 @@ class AreaDetector:
 
         plt.axis("off")
         plt.imshow(self.__detected_area_merged, cmap='gray')
-        plt.savefig(f'results/Full_map.jpg', dpi=500, bbox_inches='tight')
+        plt.savefig(f'src/area_detection/results/Full_map.jpg', dpi=500, bbox_inches='tight')
 
 
     def prepare_for_points_extraction(self) -> None:
@@ -248,7 +246,7 @@ class AreaDetector:
                 plt.figure()
                 plt.imshow(self.__detected_areas_map_fragments[row][column].get_image(), cmap='gray')
                 plt.axis("off")
-                plt.savefig(f'results/thresholding/Thresholding_{str(counter)}.jpg', dpi=500, bbox_inches='tight')
+                plt.savefig(f'src/area_detection/results/thresholding/Thresholding_{str(counter)}.jpg', dpi=500, bbox_inches='tight')
                 plt.close()
 
                 self.__detected_areas_map_fragments[row][column].apply_morphology_close(7)
@@ -256,7 +254,7 @@ class AreaDetector:
                 plt.figure()
                 plt.imshow(self.__detected_areas_map_fragments[row][column].get_image(), cmap='gray')
                 plt.axis("off")
-                plt.savefig(f'results/morphology/Morhphology__{str(counter)}.jpg', dpi=500, bbox_inches='tight')
+                plt.savefig(f'src/area_detection/results/morphology/Morhphology_{str(counter)}.jpg', dpi=500, bbox_inches='tight')
                 plt.close()
 
                 self.__detected_areas_map_fragments[row][column].apply_one_threshold()
@@ -265,22 +263,6 @@ class AreaDetector:
 
         self.__merge_map()
 
-
-    def plot_result(self, points: list[PointData]) -> None:
-        """ Plots result of area detection """
-        # to też trzeba zmienić żeby plotowało więcej fragmentów niż tylko jeden
-        counter = 1
-        for row_index in range(len(self.__detected_areas_map_fragments)):
-            for map_fragment in self.__detected_areas_map_fragments[row_index]:
-                plt.figure()
-                plt.imshow(map_fragment.get_image(), cmap='gray')
-                for point in points:
-                    prepared_coordinates = map_fragment.convert_point_to_img_coordinates(point)
-                    plt.plot(prepared_coordinates[0], prepared_coordinates[1], 'ro', markersize=5)
-                plt.axis("off")
-                plt.savefig(f'results/Area_part_{str(counter)}.jpg', dpi=500, bbox_inches='tight')
-                counter += 1
-
     def get_map_fragment(self, row_num: int, col_num: int):
         """ Returns map fragment at the provided position, function created for testing purposes """
         return self.__detected_areas_map_fragments[row_num][col_num]
@@ -288,7 +270,7 @@ class AreaDetector:
 
     def get_boundary_points(self) -> tuple[list[int], list[int]]:
         """ Returns points of the detected areas boundaries """
-        contours, hierarchy = cv.findContours(self.__detected_area_merged, cv.RETR_CCOMP, cv.CHAIN_APPROX_TC89_KCOS)
+        contours, hierarchy = cv.findContours(self.__detected_area_merged, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_TC89_KCOS)
         # saving result as the image
         image_contour = cv.cvtColor(self.__detected_area_merged, cv.COLOR_GRAY2BGR)  # Image for contours
         image_points = cv.cvtColor(self.__detected_area_merged, cv.COLOR_GRAY2BGR)  # Image for points
@@ -317,15 +299,23 @@ class AreaDetector:
         plt.imshow(image_points_rgb, cmap='gray')
         plt.title("Contour Points")
         plt.axis('off')
-        plt.savefig('results\contour_detection\Contour.jpg', dpi=500, bbox_inches='tight')
+        plt.savefig('src/area_detection/results/contour_detection/Contour.jpg', dpi=500, bbox_inches='tight')
         plt.close()
 
-        self.__boundary_points = contours
-        self.__boundary_points_hierarchy = hierarchy
-
         return contours, hierarchy
+
+    def get_coordinates_merged_map(self, point: PointData) -> tuple[int, int]:
+        """ Returns coordinates of the center point on the merged area map """
+        row_num, col_num = self.__search_for_the_map_fragment(0, point)
+        x, y = self.__detected_areas_map_fragments[row_num][col_num].convert_point_to_img_coordinates(point)
+        return x + (self.__patch_size * col_num), y + (self.__patch_size * row_num)
+
 
     def get_boundary_points_degrees(self):
         """ Returns boundary points in degrees in format that would be easy to show on map """
         pass
         # TODO: implement this function
+
+    def get_merged_map(self):
+        """ Returns merged map of detected area """
+        return self.__detected_area_merged
