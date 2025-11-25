@@ -29,6 +29,7 @@ class AreaDetectionController:
         """ Detects area for all points that were provided to class """
         print("Detection of edges is starting")
         detected_edges_map = self.__edge_detector.detect_and_return_merged_bands()
+        data = detected_edges_map.getInfo()
         print("Detection of edges is finished")
         self.__area_detector = AreaDetector(detected_edges_map, self.__map_center, self.__projection)
 

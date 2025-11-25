@@ -33,7 +33,7 @@ class MapFragment:
         img = img.sampleRectangle(region=buffer, defaultValue=0).getInfo()
 
         # selecting band of the image
-        img = np.array(img['properties']['max'], dtype=float)
+        img = np.array(img['properties']['merged_band'], dtype=float)
         return img
 
     def contains_point(self, point: PointData) -> bool:
@@ -59,7 +59,8 @@ class MapFragment:
 
     def run_flood_fill(self, x: int, y: int):
         """ Runs flood fill on map fragment - detected areas have value of FLOOD_FILL_COLOR to differentiate them from the edges """
-        self.__map_representation[:] = flood_fill(self.__map_representation, (y, x), FLOOD_FILL_COLOR)
+        if self.__map_representation[y][x] == BLACK:
+            self.__map_representation[:] = flood_fill(self.__map_representation, (y, x), FLOOD_FILL_COLOR)
 
     def apply_two_thresholds(self, threshold1: float = 0.0, threshold2: float = 1.0):
         """ Applies thresholding with two thresholds on map fragment to extract detected areas from image """
