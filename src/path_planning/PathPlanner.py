@@ -4,7 +4,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from scipy.spatial import distance_matrix
-from matplotlib.patches import Circle, Polygon, Wedge
 import os
 
 
@@ -56,11 +55,9 @@ class PathPlanner:
         else:
             print("No detected area")
             return
-        #self.starting_point = [centroid_x, centroid_y]
-        print(contours)
-        self.starting_point = contours[0][0][0]
+        self.starting_point = [centroid_x, centroid_y]
         self.starting_direction = starting_direction
-        self._path, self._directions, self._turns = self.algorithm.calculate_path(contours, hierarchy, self.starting_point, self.starting_direction, self.priority_field)
+        self._path, self._directions, self._turns = self.algorithm.calculate_path_detected_area(contours, hierarchy, self.starting_point, self.starting_direction)
 
     def smoothen_path(self):
         q_points = self._path * 0.75 + np.r_[[self.starting_point], self._path[:-1]] * 0.25

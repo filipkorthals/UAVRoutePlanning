@@ -38,24 +38,24 @@ class UAVPathPlanner:
 
 # code to execute
 """ Detection using multiple points """
-uav_path_planner = UAVPathPlanner() # module initializes GEE - IMPORTANT
+# uav_path_planner = UAVPathPlanner() # module initializes GEE - IMPORTANT
 
-longitude, latitude = 54.14392009809102, 18.644358525823773
-point = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
+# longitude, latitude = 54.14392009809102, 18.644358525823773
+# point = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
 
-longitude, latitude = 54.1377860411294, 18.641354451774795
-point2 = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
+# longitude, latitude = 54.1377860411294, 18.641354451774795
+# point2 = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
 
-longitude, latitude = 54.1407023454407, 18.636118779860862
-point3 = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
+# longitude, latitude = 54.1407023454407, 18.636118779860862
+# point3 = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
 
-longitude, latitude = 54.14188645070116, 18.632651723670833
-point4 = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
+# longitude, latitude = 54.14188645070116, 18.632651723670833
+# point4 = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
 
-longitude, latitude = 54.14502614281903, 18.63560379573818
-point5 = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
+# longitude, latitude = 54.14502614281903, 18.63560379573818
+# point5 = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
 
-points_list = [point, point2, point3, point4, point5]
+# points_list = [point, point2, point3, point4, point5]
 
-uav_path_planner.plan_path(points_list)
+# uav_path_planner.plan_path(points_list)
 
