@@ -1,10 +1,10 @@
 import ee
 import time
-from src.area_detection.AreaDetectionController import AreaDetectionController
-from src.area_detection.PointData import PointData
+from .area_detection.AreaDetectionController import AreaDetectionController
+from .area_detection.PointData import PointData
 import numpy as np
-from src.path_planning.HeuristicKorean import HeuristicKorean
-from src.path_planning.PathPlanner import PathPlanner
+from .path_planning.HeuristicKorean import HeuristicKorean
+from .path_planning.PathPlanner import PathPlanner
 
 """ Class that is responsible of handling path planning for UAV """
 
