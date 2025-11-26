@@ -4,6 +4,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from scipy.spatial import distance_matrix
+from matplotlib.patches import Circle, Polygon, Wedge
 import os
 
 
@@ -17,7 +18,7 @@ class PathPlanner:
         self.img_path: str = None
         self.starting_point: np.array = None
         self.starting_direction: float = None
-        self.priority_field: np.array = None
+        self.priority_field: np.array = np.array([])
         os.makedirs('src/path_planning/results', exist_ok=True)
 
     def run_path_finding(self):
@@ -36,9 +37,9 @@ class PathPlanner:
             plt.title("Path planning result")
         rect_rgb = cv2.cvtColor(merged_area, cv2.COLOR_BGR2RGB)
         plt.imshow(rect_rgb)
+        plt.fill(self.priority_field[:, 0], self.priority_field[:, 1], "g",  alpha=0.3)
         plt.plot(self._path[:, 0], self._path[:, 1], "r")
         plt.plot(self.starting_point[0], self.starting_point[1], 'bo')
-
         start = self._path[-1]
         next_point = self._path[-2]
         dx = next_point[0] - start[0]
@@ -55,9 +56,11 @@ class PathPlanner:
         else:
             print("No detected area")
             return
-        self.starting_point = [centroid_x, centroid_y]
+        #self.starting_point = [centroid_x, centroid_y]
+        print(contours)
+        self.starting_point = contours[0][0][0]
         self.starting_direction = starting_direction
-        self._path, self._directions, self._turns = self.algorithm.calculate_path_detected_area(contours, hierarchy, self.starting_point, self.starting_direction)
+        self._path, self._directions, self._turns = self.algorithm.calculate_path(contours, hierarchy, self.starting_point, self.starting_direction, self.priority_field)
 
     def smoothen_path(self):
         q_points = self._path * 0.75 + np.r_[[self.starting_point], self._path[:-1]] * 0.25

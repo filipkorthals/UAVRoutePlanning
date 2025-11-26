@@ -84,7 +84,7 @@ class HeuristicKorean:
         angle_cost = angle_cost.reshape(-1, 1)
         return angle_cost, target_angles
 
-    def traverse_the_grid(self, grid_points: np.array, starting_point: np.array, starting_direction: float, priority_field: np.array = np.array([])) -> (np.array, np.array, np.array):
+    def traverse_the_grid(self, grid_points: np.array, starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array):
         visited = np.zeros(len(grid_points), dtype=bool)
         path, direction_history, turn_history = [], [], []
 
@@ -97,10 +97,13 @@ class HeuristicKorean:
         predator_cost *= -1
 
         priority_multiplier = 0.5
+        print(priority_field)
         if priority_field is not None:
             priority_factor = np.array([priority_multiplier if Path(priority_field).contains_point(point) else 1 for point in grid_points])
+            priority_factor = priority_factor.reshape((priority_factor.size, 1))
         else:
             priority_factor = np.array([1 for _ in grid_points])
+            priority_factor = priority_factor.reshape((priority_factor.size, 1))
 
         while not np.all(visited):
             unvisited_grid = grid_points[~visited]
@@ -111,7 +114,7 @@ class HeuristicKorean:
 
             cost_total = distance_cost * self.distance_weight + np.abs(angle_cost) * self.turn_weight \
                          + unvisited_predator_cost * self.predator_weight
-            cost_total = np.multiply(cost_total, priority_factor)
+            cost_total = np.multiply(cost_total, priority_factor[~visited])
 
             # choose the best next point
             best_next_idx = np.argmin(cost_total)
@@ -128,19 +131,9 @@ class HeuristicKorean:
 
         return np.array(path + [starting_point]), np.array(direction_history), np.array(turn_history)
 
-    def calculate_path(self, img_path: str, starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array):
-        contour_vertices, obstacles = self.get_contours(img_path)
+    def calculate_path(self, contours: list[int], hierarchy: list[int], starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array):
+        contour_vertices, obstacles = self.process_contours(contours, hierarchy)
         grid_points = self.create_grid(contour_vertices, obstacles)
-        plt.title("grid")
-        plt.plot(contour_vertices[:, 0], contour_vertices[:, 1], "g*")
-        plt.plot(grid_points[:, 0], grid_points[:, 1], "r*")
-        # plt.quiver(path[:, 0], path[:, 1], np.cos(direction_history), np.sin(direction_history), color='r', angles='xy')
-
-        # plt.plot(vertices_array[:, 0], vertices_array[:, 1], "g^")
-        rect = cv2.imread(img_path)
-        rect_rgb = cv2.cvtColor(rect, cv2.COLOR_BGR2RGB)
-        plt.imshow(rect_rgb)
-        plt.show()
         return self.traverse_the_grid(grid_points, starting_point, starting_direction, priority_field)
 
     def calculate_path_2(self, img_path: str, starting_point: np.array, starting_direction: float) -> (np.array, np.array, np.array):
@@ -149,8 +142,8 @@ class HeuristicKorean:
         return self.traverse_the_grid(grid_points, starting_point, starting_direction)
 
     def calculate_path_detected_area(self, contours: list[int], hierarchy: list[int], starting_point: np.array, starting_direction: float) -> (np.array, np.array, np.array):
-        contour_vertices = self.process_contours(contours, hierarchy)
-        grid_points = self.create_grid(contour_vertices)
+        contour_vertices, obstacles = self.process_contours(contours, hierarchy)
+        grid_points = self.create_grid(contour_vertices, obstacles)
         return self.traverse_the_grid(grid_points, starting_point, starting_direction)
 
     def __str__(self):

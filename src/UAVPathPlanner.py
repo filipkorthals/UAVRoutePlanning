@@ -24,10 +24,14 @@ class UAVPathPlanner:
         print("Area detection time:", str(time.time() - start), "seconds")
 
         start = time.time()
-        self.__path_planner.algorithm = HeuristicKorean()
+        self.__path_planner.algorithm = HeuristicKorean(predator_weight=0)
+        self.__path_planner.starting_point
+        self.__path_planner.priority_field = np.array([self.__area_detection_controller.area_detector.
+                                                      get_coordinates_merged_map(point) for point in points])
         self.__path_planner.run_path_finding_detected_area(contours, hierarchy,
                                                            self.__area_detection_controller.get_merged_map(),
                                                            np.pi / 4)
+        self.__path_planner.smoothen_path()
         self.__path_planner.draw_path(self.__area_detection_controller.get_merged_map())
         print("Path planning time:", str(time.time() - start), "seconds")
 
@@ -36,25 +40,22 @@ class UAVPathPlanner:
 """ Detection using multiple points """
 uav_path_planner = UAVPathPlanner() # module initializes GEE - IMPORTANT
 
-longitude, latitude = 53.324389, 18.455298
+longitude, latitude = 54.14392009809102, 18.644358525823773
 point = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
 
-longitude2, latitude2 = 53.325556, 18.443333
-point2 = PointData(latitude2, longitude2, ee.Projection('EPSG:3035'))
+longitude, latitude = 54.1377860411294, 18.641354451774795
+point2 = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
 
-longitude3, latitude3 = 53.328713, 18.447336
-point3 = PointData(latitude3, longitude3, ee.Projection('EPSG:3035'))
+longitude, latitude = 54.1407023454407, 18.636118779860862
+point3 = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
 
-longitude4, latitude4 = 53.324253, 18.450105
-point4 = PointData(latitude4, longitude4, ee.Projection('EPSG:3035'))
+longitude, latitude = 54.14188645070116, 18.632651723670833
+point4 = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
 
-longitude5, latitude5 = 53.318886, 18.426898
-point5 = PointData(latitude5, longitude5, ee.Projection('EPSG:3035'))
+longitude, latitude = 54.14502614281903, 18.63560379573818
+point5 = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
 
-longitude6, latitude6 = 53.318886, 18.426898
-point6 = PointData(latitude6, longitude6, ee.Projection('EPSG:3035'))
-
-points_list = [point, point3, point4, point5, point6]
+points_list = [point, point2, point3, point4, point5]
 
 uav_path_planner.plan_path(points_list)
 
