@@ -72,7 +72,10 @@ class HeuristicKorean:
         for obstacle in obstacles:
             obstacle_shapes.append(Path(obstacle))
 
+        print("Generating grid points")
         grid_points = np.array([point for point in set_points if polygon.contains_point(tuple([point[0], point[1]])) and sum([obstacle_shape.contains_point(tuple([point[0], point[1]])) for obstacle_shape in obstacle_shapes]) == 0])
+        print("Generated " + str(grid_points.size) + " grid points to traverse")
+
 
         return grid_points
 
@@ -97,7 +100,6 @@ class HeuristicKorean:
         predator_cost *= -1
 
         priority_multiplier = 0.5
-        print(priority_field)
         if priority_field is not None:
             priority_factor = np.array([priority_multiplier if Path(priority_field).contains_point(point) else 1 for point in grid_points])
             priority_factor = priority_factor.reshape((priority_factor.size, 1))
@@ -106,6 +108,7 @@ class HeuristicKorean:
             priority_factor = priority_factor.reshape((priority_factor.size, 1))
 
         while not np.all(visited):
+            print("Visited " + str(len(path)) + " out of " + str(grid_points.size) + " points")
             unvisited_grid = grid_points[~visited]
             # calculate costs
             distance_cost = distance_matrix(unvisited_grid, [current_point])
