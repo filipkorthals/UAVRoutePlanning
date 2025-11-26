@@ -9,7 +9,7 @@ from .PointData import PointData
 class AreaDetectionController:
 
     def __init__(self):
-        self.__area_detector = None
+        self.area_detector: AreaDetector = None
         self.__projection = ee.Projection('EPSG:3035')  # projection that is accurate only to Europe!
         self.__points_list = None
         self.__points_feature_collection = None
@@ -31,19 +31,19 @@ class AreaDetectionController:
         detected_edges_map = self.__edge_detector.detect_and_return_merged_bands()
         data = detected_edges_map.getInfo()
         print("Detection of edges is finished")
-        self.__area_detector = AreaDetector(detected_edges_map, self.__map_center, self.__projection)
+        self.area_detector = AreaDetector(detected_edges_map, self.__map_center, self.__projection)
 
         print("Detection of areas is starting")
-        self.__area_detector.run_area_detection(self.__points_list)
+        self.area_detector.run_area_detection(self.__points_list)
         print("Detection of areas is finished")
 
         print("Point extraction is starting")
-        self.__area_detector.prepare_for_points_extraction()
-        contours, hierarchy = self.__area_detector.get_boundary_points()  # this function returns points for path planning
+        self.area_detector.prepare_for_points_extraction()
+        contours, hierarchy = self.area_detector.get_boundary_points()  # this function returns points for path planning
         print("Point extraction is finished")
 
         return contours, hierarchy
 
     def get_merged_map(self):
         """ Returns merged map of detected area """
-        return self.__area_detector.get_merged_map()
+        return self.area_detector.get_merged_map()

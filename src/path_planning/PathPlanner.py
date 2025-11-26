@@ -17,7 +17,7 @@ class PathPlanner:
         self.img_path: str = None
         self.starting_point: np.array = None
         self.starting_direction: float = None
-        self.priority_field: np.array = None
+        self.priority_field: np.array = np.array([])
         os.makedirs('src/path_planning/results', exist_ok=True)
 
     def run_path_finding(self):
@@ -36,9 +36,9 @@ class PathPlanner:
             plt.title("Path planning result")
         rect_rgb = cv2.cvtColor(merged_area, cv2.COLOR_BGR2RGB)
         plt.imshow(rect_rgb)
+        plt.fill(self.priority_field[:, 0], self.priority_field[:, 1], "g",  alpha=0.3)
         plt.plot(self._path[:, 0], self._path[:, 1], "r")
         plt.plot(self.starting_point[0], self.starting_point[1], 'bo')
-
         start = self._path[-1]
         next_point = self._path[-2]
         dx = next_point[0] - start[0]
