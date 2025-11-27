@@ -3,12 +3,16 @@ from flask_cors import CORS
 from api.src.UAVPathPlanner import UAVPathPlanner
 from api.src.area_detection.PointData import PointData
 import ee
+import os
 import matplotlib
+
 matplotlib.use("Agg") 
 
 app = Flask(__name__)
 
 CORS(app, origins=["http://localhost:3000"])
+
+os.makedirs('static', exist_ok=True)
 
 @app.route('/')
 def siema():

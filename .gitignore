@@ -118,3 +118,5 @@ dmypy.json
 src/path_planning/.idea
 
 .DS_Store
+
+*.jpg
