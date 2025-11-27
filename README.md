@@ -46,9 +46,15 @@ cd api
 ```
 
 2. Create a virtual environment
+- **MacOS/Linux**
 ```bash
 python -m venv .venv
 source .venv/bin/activate
+```
+- **Windows**
+```bash
+python -m venv .venv
+.venv/Scripts/activate
 ```
 
 From now on, every command must be run with the virtual environment active.
