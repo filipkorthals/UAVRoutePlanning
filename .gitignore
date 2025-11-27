@@ -116,3 +116,5 @@ dmypy.json
 
 #Pycharm IDE
 src/path_planning/.idea
+
+.DS_Store

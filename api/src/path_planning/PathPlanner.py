@@ -18,7 +18,7 @@ class PathPlanner:
         self.starting_point: np.array = None
         self.starting_direction: float = None
         self.priority_field: np.array = np.array([])
-        os.makedirs('src/path_planning/results', exist_ok=True)
+        # os.makedirs('src/path_planning/results', exist_ok=True)
 
     def run_path_finding(self):
         if self.algorithm is None:
@@ -45,7 +45,12 @@ class PathPlanner:
         dy = next_point[1] - start[1]
 
         plt.quiver(start[0], start[1], dx, dy, color='b', angles='xy', scale_units='xy', scale=1)
-        plt.savefig('src/path_planning/results/Planned_path.jpg')
+        # plt.savefig('src/path_planning/results/Planned_path.jpg')
+        # zapisywanie w miejscu dostepnym z frontendu
+        static_path = os.path.join(os.path.dirname(__file__), '../../static/Planned_path.jpg')
+        static_path = os.path.abspath(static_path)
+
+        plt.savefig(static_path)
 
     def run_path_finding_detected_area(self, contours: list[int], hierarchy: list[int], merged_map: np.array, starting_direction: float):
         M = cv2.moments(merged_map)
@@ -57,7 +62,7 @@ class PathPlanner:
             return
         self.starting_point = [centroid_x, centroid_y]
         self.starting_direction = starting_direction
-        self._path, self._directions, self._turns = self.algorithm.calculate_path_detected_area(contours, hierarchy, self.starting_point, self.starting_direction)
+        self._path, self._directions, self._turns = self.algorithm.calculate_path(contours, hierarchy, self.starting_point, self.starting_direction, self.priority_field)
 
     def smoothen_path(self):
         q_points = self._path * 0.75 + np.r_[[self.starting_point], self._path[:-1]] * 0.25
