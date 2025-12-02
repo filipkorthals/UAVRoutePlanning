@@ -3,7 +3,7 @@ import time
 from .area_detection.AreaDetectionController import AreaDetectionController
 from .area_detection.PointData import PointData
 import numpy as np
-from .path_planning.HeuristicKorean import HeuristicKorean
+from .path_planning.PathAlgorithm import PathAlgorithm
 from .path_planning.PathPlanner import PathPlanner
 
 """ Class that is responsible of handling path planning for UAV """
@@ -24,14 +24,13 @@ class UAVPathPlanner:
         print("Area detection time:", str(time.time() - start), "seconds")
 
         start = time.time()
-        self.__path_planner.algorithm = HeuristicKorean(predator_weight=0)
+        self.__path_planner.algorithm = PathAlgorithm(predator_weight=0)
         self.__path_planner.starting_point
         self.__path_planner.priority_field = np.array([self.__area_detection_controller.area_detector.
                                                       get_coordinates_merged_map(point) for point in points])
         self.__path_planner.run_path_finding_detected_area(contours, hierarchy,
                                                            self.__area_detection_controller.get_merged_map(),
                                                            np.pi / 4)
-        self.__path_planner.smoothen_path()
         self.__path_planner.draw_path(self.__area_detection_controller.get_merged_map())
         print("Path planning time:", str(time.time() - start), "seconds")
 

@@ -61,7 +61,7 @@ From now on, every command must be run with the virtual environment active.
 
 3. Install required modules
 ```bash
-pip install —upgrade pip    # This is not necessary, but it can help avoid potential errors
+pip install -upgrade pip    # This is not necessary, but it can help avoid potential errors
 pip install -r requirements.txt
 ```
 
