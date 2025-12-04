@@ -263,7 +263,7 @@ class AreaDetector:
                 plt.figure()
                 plt.imshow(self.__detected_areas_map_fragments[row][column].get_image(), cmap='gray')
                 plt.axis("off")
-                plt.savefig(f'src/area_detection/results/thresholding/Thresholding_{str(counter)}.jpg', dpi=500, bbox_inches='tight')
+                plt.savefig(f'src/area_detection/results/thresholding/Thresholding{str(counter)}.jpg', dpi=500, bbox_inches='tight')
                 plt.close()
 
                 self.__detected_areas_map_fragments[row][column].apply_morphology_close(7)
@@ -271,7 +271,7 @@ class AreaDetector:
                 plt.figure()
                 plt.imshow(self.__detected_areas_map_fragments[row][column].get_image(), cmap='gray')
                 plt.axis("off")
-                plt.savefig(f'src/area_detection/results/morphology/Morhphology_{str(counter)}.jpg', dpi=500, bbox_inches='tight')
+                plt.savefig(f'src/area_detection/results/morphology/Morphology{str(counter)}.jpg', dpi=500, bbox_inches='tight')
                 plt.close()
 
                 self.__detected_areas_map_fragments[row][column].apply_one_threshold()
