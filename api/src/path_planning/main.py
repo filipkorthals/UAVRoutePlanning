@@ -1,6 +1,6 @@
 import numpy as np
 
-from HeuristicKorean import HeuristicKorean
+from PathAlgorithm import PathAlgorithm
 from PathPlanner import PathPlanner
 
 if __name__ == "__main__":
@@ -11,13 +11,13 @@ if __name__ == "__main__":
     #                    + [[10, x] for x in range(0, 250, 50)]
     starting_points = [[10, 10]]
     for x, y in starting_points:
-        path_planner.algorithm = HeuristicKorean(scan_radius=10, scan_accuracy=0.5, turn_weight=0, predator_weight=0, distance_weight=0)
+        path_planner.algorithm = PathAlgorithm(scan_radius=10, scan_accuracy=0.5, turn_weight=0, predator_weight=0, distance_weight=0)
+        path_planner.priority_field = []
         path_planner.starting_point = [x, y]
         path_planner.starting_direction = np.arctan2(100 - y, 200 - x )
 
         path_planner.run_path_finding()
         print(path_planner.calculate_path_score())
         path_planner.draw_path()
-        path_planner.smoothen_path()
         print(path_planner.calculate_path_score())
         path_planner.draw_path()

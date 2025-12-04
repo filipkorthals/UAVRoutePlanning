@@ -3,6 +3,7 @@ import cv2
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
+from numpy.ma.core import arctan
 from scipy.spatial import distance_matrix
 import os
 
@@ -11,6 +12,7 @@ class PathPlanner:
 
     def __init__(self):
         self.algorithm = None
+        self.resolution = 10
         self._path: np.array = None
         self._directions: np.array = None
         self._turns: np.array = None
@@ -30,6 +32,7 @@ class PathPlanner:
                                                                                   self.priority_field)
 
     def draw_path(self, merged_area: np.array):
+        plt.clf()
         if self.img_path is not None:
             plt.title(self.img_path + str(self.algorithm))
         else:
@@ -64,13 +67,6 @@ class PathPlanner:
         self.starting_direction = starting_direction
         self._path, self._directions, self._turns = self.algorithm.calculate_path(contours, hierarchy, self.starting_point, self.starting_direction, self.priority_field)
 
-    def smoothen_path(self):
-        q_points = self._path * 0.75 + np.r_[[self.starting_point], self._path[:-1]] * 0.25
-        r_points = self._path * 0.25 + np.r_[[self.starting_point], self._path[:-1]] * 0.75
-        self._path = np.empty((2 * len(self._path), 2))
-        self._path[1::2] = q_points
-        self._path[0::2] = r_points
-
     def calculate_path_score(self) -> (float, float):
         lengths = np.sqrt(np.sum(np.diff(self._path, axis=0)**2, axis=1))
         total_length = np.sum(lengths)
@@ -81,3 +77,28 @@ class PathPlanner:
 
         turn_score = number_of_small_turns * 0.5 + number_of_big_turns
         return total_length, turn_score
+
+    def validate_time(self, velocity: float, time_in_min: float) -> float:
+        lengths = np.sqrt(np.sum(np.diff(self._path, axis=0) ** 2, axis=1))
+        total_length = np.sum(lengths)
+        time_required = total_length * self.resolution / velocity * 60
+
+        return time_required / time_in_min
+
+    def validate_turns(self, velocity: float) -> float:
+        maximal_turn = 0
+        for i in range(0, len(self._path)-2):
+            (x1, y1), (x2, y2) = self._path[i], self._path[i+2]
+            x0, y0 = self._path[i + 1]
+
+            distance = abs((y2-y1)*x0-(x2-x1)*y0+x2*y1-y2*x1) / np.sqrt((y2-y1)**2+(x2-x1)**2)
+
+            distance_in_m = distance * self.resolution
+            velocity_in_m = velocity * 1000 / 3600
+
+            turn = arctan((velocity_in_m ** 2) / (9.81 * distance_in_m))
+
+            if turn > maximal_turn:
+                maximal_turn = turn
+
+        return maximal_turn

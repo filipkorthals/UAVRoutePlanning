@@ -5,7 +5,7 @@ from scipy.spatial import distance_matrix
 from matplotlib.path import Path
 
 
-class HeuristicKorean:
+class PathAlgorithm:
     def __init__(self, scan_radius: float = 20, scan_accuracy: float = 1,
                  distance_weight: float = 1, turn_weight: float = 1,
                  predator_weight: float = 1):
@@ -45,7 +45,8 @@ class HeuristicKorean:
 
         max_vertex_distance = np.array(a).max()
 
-        grid_param = max_vertex_distance * 2 * self.scan_radius / self.scan_accuracy
+        grid_param = max_vertex_distance + self.scan_radius * 2
+        print(grid_param)
 
         set_points_x = np.arange(-grid_param / 2, grid_param / 2, self.scan_radius / self.scan_accuracy)
         set_points_y = np.arange(-grid_param / 2, grid_param / 2, self.scan_radius / self.scan_accuracy)
@@ -54,7 +55,7 @@ class HeuristicKorean:
         set_points = set_points.reshape((set_points.shape[0] ** 2, 2))
         set_points = np.array(
             [[x * np.cos(alpha) - y * np.sin(alpha), x * np.sin(alpha) + y * np.cos(alpha)] for x, y in set_points])
-
+        print(set_points.size)
         centre = np.array([np.average(set_points[:, 0]) - np.average(vertices_array[:, 0]),
                            np.average(set_points[:, 1]) - np.average(vertices_array[:, 1])])
         set_points = set_points - centre
@@ -66,13 +67,15 @@ class HeuristicKorean:
 
         moved_polygon = vertices_array - self.scan_radius / 4 * unit_vectors
 
-        polygon = Path(moved_polygon)
+        polygon = Path(vertices_array)
 
         obstacle_shapes = []
         for obstacle in obstacles:
             obstacle_shapes.append(Path(obstacle))
 
-        grid_points = np.array([point for point in set_points if polygon.contains_point(tuple([point[0], point[1]])) and sum([obstacle_shape.contains_point(tuple([point[0], point[1]])) for obstacle_shape in obstacle_shapes]) == 0])
+        grid_points = np.array([point for point in set_points if polygon.contains_point(tuple([point[0], point[1]])) and
+                                sum([obstacle_shape.contains_point(tuple([point[0], point[1]]))
+                                     for obstacle_shape in obstacle_shapes]) == 0])
 
         return grid_points
 
@@ -97,7 +100,6 @@ class HeuristicKorean:
         predator_cost *= -1
 
         priority_multiplier = 0.5
-        print(priority_field)
         if priority_field is not None:
             priority_factor = np.array([priority_multiplier if Path(priority_field).contains_point(point) else 1 for point in grid_points])
             priority_factor = priority_factor.reshape((priority_factor.size, 1))
@@ -106,9 +108,10 @@ class HeuristicKorean:
             priority_factor = priority_factor.reshape((priority_factor.size, 1))
 
         while not np.all(visited):
+            print("Visited " + str(sum(visited)) + " out of " + str(grid_points.size / 2) + " waypoints")
             unvisited_grid = grid_points[~visited]
             # calculate costs
-            distance_cost = distance_matrix(unvisited_grid, [current_point])
+            distance_cost = distance_matrix(unvisited_grid, [current_point]) / self.scan_radius
             angle_cost, target_angles = self.calculate_turn_cost(unvisited_grid, current_point, current_direction)
             unvisited_predator_cost = predator_cost[~visited]
 
@@ -135,16 +138,6 @@ class HeuristicKorean:
         contour_vertices, obstacles = self.process_contours(contours, hierarchy)
         grid_points = self.create_grid(contour_vertices, obstacles)
         return self.traverse_the_grid(grid_points, starting_point, starting_direction, priority_field)
-
-    def calculate_path_2(self, img_path: str, starting_point: np.array, starting_direction: float) -> (np.array, np.array, np.array):
-        contour_vertices = self.get_contours(img_path)
-        grid_points = self.create_grid(contour_vertices)
-        return self.traverse_the_grid(grid_points, starting_point, starting_direction)
-
-    def calculate_path_detected_area(self, contours: list[int], hierarchy: list[int], starting_point: np.array, starting_direction: float) -> (np.array, np.array, np.array):
-        contour_vertices, obstacles = self.process_contours(contours, hierarchy)
-        grid_points = self.create_grid(contour_vertices, obstacles)
-        return self.traverse_the_grid(grid_points, starting_point, starting_direction)
 
     def __str__(self):
         return "Heuristic("+str(self.scan_radius)+","+str(self.scan_accuracy)+","+str(self.distance_weight)+","\
