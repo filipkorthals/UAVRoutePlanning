@@ -23,11 +23,13 @@ class AreaDetector:
         self.__img_resolution = 5  # to chyba może być przerzucone w całości do klasy map fragment :)
         self.__buffer_radius = ((self.__patch_size - 1) / 2) * self.__img_resolution
         # we subtract center point from the patch size
+        self.__map_fragments_counter = 0
         self.__load_map_fragment(self.__map_center, 0, 0)
         os.makedirs('src/area_detection/results', exist_ok=True)
         os.makedirs('src/area_detection/results/thresholding', exist_ok=True)
         os.makedirs('src/area_detection/results/morphology', exist_ok=True)
         os.makedirs('src/area_detection/results/contour_detection', exist_ok=True)
+        os.makedirs('src/area_detection/results/edges', exist_ok=True)
 
     def __load_map_fragment(self, center_point: PointData, x_pos_to_insert: int, y_pos_to_insert: int):
         """ Initiates a map around center point of image """
@@ -35,6 +37,17 @@ class AreaDetector:
         new_map_fragment = MapFragment(center_point, self.__projection, self.__buffer_radius, self.__edge_map,
                                        self.__img_resolution, self.__patch_size)
         self.__detected_areas_map_fragments[y_pos_to_insert].insert(x_pos_to_insert, new_map_fragment)
+
+        self.__map_fragments_counter += 1
+
+        fig, ax = plt.subplots()
+
+        ax.axis("off")
+        ax.imshow(new_map_fragment.get_image(), cmap='gray')
+        fig.savefig(f'src/area_detection/results/edges/Contours' + str(self.__map_fragments_counter) + '.jpg', dpi=500, bbox_inches='tight')
+
+        plt.close(fig)
+
         print("Loading map fragment finished")
         print("\nStructure of loaded map: ")
         for row_id, row in enumerate(self.__detected_areas_map_fragments):
@@ -230,9 +243,13 @@ class AreaDetector:
         self.__detected_area_merged = np.concatenate(merged_rows, axis=0).astype(np.uint8)
         print("Merging map finished")
 
+        fig = plt.figure()
+
+
+
         plt.axis("off")
         plt.imshow(self.__detected_area_merged, cmap='gray')
-        plt.savefig(f'src/area_detection/results/Full_map.jpg', dpi=500, bbox_inches='tight')
+        plt.savefig(f'src/area_detection/results/Edge_map.jpg', dpi=500, bbox_inches='tight')
 
 
     def prepare_for_points_extraction(self) -> None:
@@ -246,7 +263,7 @@ class AreaDetector:
                 plt.figure()
                 plt.imshow(self.__detected_areas_map_fragments[row][column].get_image(), cmap='gray')
                 plt.axis("off")
-                plt.savefig(f'src/area_detection/results/thresholding/Thresholding_{str(counter)}.jpg', dpi=500, bbox_inches='tight')
+                plt.savefig(f'src/area_detection/results/thresholding/Thresholding{str(counter)}.jpg', dpi=500, bbox_inches='tight')
                 plt.close()
 
                 self.__detected_areas_map_fragments[row][column].apply_morphology_close(7)
@@ -254,7 +271,7 @@ class AreaDetector:
                 plt.figure()
                 plt.imshow(self.__detected_areas_map_fragments[row][column].get_image(), cmap='gray')
                 plt.axis("off")
-                plt.savefig(f'src/area_detection/results/morphology/Morhphology_{str(counter)}.jpg', dpi=500, bbox_inches='tight')
+                plt.savefig(f'src/area_detection/results/morphology/Morphology{str(counter)}.jpg', dpi=500, bbox_inches='tight')
                 plt.close()
 
                 self.__detected_areas_map_fragments[row][column].apply_one_threshold()
