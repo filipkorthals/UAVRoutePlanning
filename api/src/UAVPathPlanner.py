@@ -24,7 +24,9 @@ class UAVPathPlanner:
         print("Area detection time:", str(time.time() - start), "seconds")
 
         start = time.time()
-        self.__path_planner.algorithm = PathAlgorithm(predator_weight=0)
+        self.__path_planner.resolution = 10
+        scan_radius = 2000 / self.__path_planner.resolution
+        self.__path_planner.algorithm = PathAlgorithm(scan_radius=scan_radius, predator_weight=1, distance_weight=5)
         self.__path_planner.starting_point
         self.__path_planner.priority_field = np.array([self.__area_detection_controller.area_detector.
                                                       get_coordinates_merged_map(point) for point in points])

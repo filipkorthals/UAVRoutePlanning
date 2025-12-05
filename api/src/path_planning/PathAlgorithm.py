@@ -6,9 +6,9 @@ from matplotlib.path import Path
 
 
 class PathAlgorithm:
-    def __init__(self, scan_radius: float = 20, scan_accuracy: float = 1,
+    def __init__(self, scan_radius: float = 200, scan_accuracy: float = 1,
                  distance_weight: float = 1, turn_weight: float = 1,
-                 predator_weight: float = 1):
+                 predator_weight: float = 0.5):
         self.scan_radius = scan_radius
         self.scan_accuracy = scan_accuracy
         self.distance_weight = distance_weight
@@ -59,23 +59,15 @@ class PathAlgorithm:
         centre = np.array([np.average(set_points[:, 0]) - np.average(vertices_array[:, 0]),
                            np.average(set_points[:, 1]) - np.average(vertices_array[:, 1])])
         set_points = set_points - centre
-        centre = np.mean(vertices_array, axis=0)
-        vectors = vertices_array - centre
-
-        norms = np.linalg.norm(vectors, axis=1).reshape(-1, 1)
-        unit_vectors = vectors / norms
-
-        moved_polygon = vertices_array - self.scan_radius / 4 * unit_vectors
 
         polygon = Path(vertices_array)
-
-        obstacle_shapes = []
+        mask = polygon.contains_points(set_points)
+        obstacle_mask = [False for _ in range(mask.size)]
         for obstacle in obstacles:
-            obstacle_shapes.append(Path(obstacle))
+            obstacle_shape = Path(obstacle)
+            obstacle_mask = obstacle_mask | obstacle_shape.contains_points(set_points)
 
-        grid_points = np.array([point for point in set_points if polygon.contains_point(tuple([point[0], point[1]])) and
-                                sum([obstacle_shape.contains_point(tuple([point[0], point[1]]))
-                                     for obstacle_shape in obstacle_shapes]) == 0])
+        grid_points = set_points[mask ^ obstacle_mask]
 
         return grid_points
 
