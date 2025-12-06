@@ -15,6 +15,8 @@ class AreaDetectionController:
         self.__points_feature_collection = None
         self.__map_center = None
         self.__edge_detector = None
+        self.__hierarchy = None
+        self.__contours = None
 
     def initialize_with_points(self, points_list: list[PointData]):
         """ Initializes area detection with passed points """
@@ -29,7 +31,6 @@ class AreaDetectionController:
         """ Detects area for all points that were provided to class """
         print("Detection of edges is starting")
         detected_edges_map = self.__edge_detector.detect_and_return_merged_bands()
-        data = detected_edges_map.getInfo()
         print("Detection of edges is finished")
         self.area_detector = AreaDetector(detected_edges_map, self.__map_center, self.__projection)
 
@@ -40,10 +41,20 @@ class AreaDetectionController:
         print("Point extraction is starting")
         self.area_detector.prepare_for_points_extraction()
         contours, hierarchy = self.area_detector.get_boundary_points()  # this function returns points for path planning
+
         print("Point extraction is finished")
 
-        return contours, hierarchy
+        self.__contours = contours
+        self.__hierarchy = hierarchy
+        return self.__contours, self.__hierarchy
 
     def get_merged_map(self):
         """ Returns merged map of detected area """
         return self.area_detector.get_merged_map()
+
+    def get_boundary_coordinates(self) -> list[tuple[float, float]]:
+        points_degrees = self.area_detector.convert_boundary_points_to_degrees(self.__contours)
+        # COORDINATES ARE IN LON LAT FORMAT!
+        # for point in points_degrees:
+        #     print(str(point[1]) + ',' + str(point[0]))
+        return points_degrees

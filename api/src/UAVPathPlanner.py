@@ -21,6 +21,8 @@ class UAVPathPlanner:
         start = time.time()
         self.__area_detection_controller.initialize_with_points(points)
         contours, hierarchy = self.__area_detection_controller.detect_areas()
+        points_coordinates = self.__area_detection_controller.get_boundary_coordinates() # points of detected area
+        # now coordinates need to be reversed before using them on map
         print("Area detection time:", str(time.time() - start), "seconds")
 
         start = time.time()
@@ -29,7 +31,7 @@ class UAVPathPlanner:
         self.__path_planner.algorithm = PathAlgorithm(scan_radius=scan_radius, predator_weight=1, distance_weight=5)
         self.__path_planner.starting_point
         self.__path_planner.priority_field = np.array([self.__area_detection_controller.area_detector.
-                                                      get_coordinates_merged_map(point) for point in points])
+                                                      get_coordinates_img_merged_map(point) for point in points])
         self.__path_planner.run_path_finding_detected_area(contours, hierarchy,
                                                            self.__area_detection_controller.get_merged_map(),
                                                            np.pi / 4)

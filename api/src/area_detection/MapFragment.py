@@ -22,8 +22,12 @@ class MapFragment:
         self.__projection = ee.Projection(projection)
         self.__center_point = center_point
         self.__scale = 5
-        self.__map_representation = self.__move_rectangle_to_numpy(edge_map)
         self.__patch_size = patch_size
+        if edge_map is not None:
+            self.__map_representation = self.__move_rectangle_to_numpy(edge_map)
+        else:
+            self.__map_representation = np.zeros((self.__patch_size, self.__patch_size))
+
 
     def __move_rectangle_to_numpy(self, edge_map: geemap.Map) -> np.array:
         """ Converts map rectangle to NumPy array """
@@ -149,9 +153,9 @@ class MapFragment:
 
     def convert_img_coordinates_to_map_coordinates(self, x_img: int, y_img: int) -> tuple[float, float]:
         """ Converts point from map representation into the point coordinates that correspond to the real coordinates
-        that are used by the map """
+        that are used by the map (in meters) """
         # TODO: nie wiem czy ta funkcja działa trzeba sprawdzić
         buffer_origin_coordinates = self.get_buffer_origin_coordinates()
-        x_map = buffer_origin_coordinates[0] + x_img * self.__img_resolution * 2
-        y_map = buffer_origin_coordinates[1] - y_img * self.__img_resolution * 2
+        x_map = buffer_origin_coordinates[0] + x_img * self.__img_resolution
+        y_map = buffer_origin_coordinates[1] - y_img * self.__img_resolution
         return x_map, y_map

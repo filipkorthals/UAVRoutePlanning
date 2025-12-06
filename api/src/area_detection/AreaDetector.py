@@ -1,5 +1,7 @@
 import ee
 import geemap
+import pandas as pd
+
 from .MapFragment import MapFragment
 from .Direction import Direction
 from .PointData import PointData
@@ -18,7 +20,7 @@ class AreaDetector:
         self.__projection = projection
         self.__map_center = map_center  # nie wiem czy to jest jeszcze potrzebne, na razie zostaje
         self.__detected_areas_map_fragments = [[]]  # MapFragments objects stored in array
-        self.__detected_area_merged = []
+        self.__detected_area_merged_image = []
         self.__patch_size = 255
         self.__img_resolution = 5  # to chyba może być przerzucone w całości do klasy map fragment :)
         self.__buffer_radius = ((self.__patch_size - 1) / 2) * self.__img_resolution
@@ -229,26 +231,35 @@ class AreaDetector:
 
         merged_rows = []
 
-        for row in self.__detected_areas_map_fragments:
+        for row_num, row in enumerate(self.__detected_areas_map_fragments):
             distance_from_row_start = (row[0].get_center_point().get_coordinates_meters()[0] -
                     leftmost_map_fragment.get_center_point().get_coordinates_meters()[0])
 
             elements_from_start = int(round(distance_from_row_start / self.__patch_size / self.__img_resolution))
 
-            map_begin = np.zeros((self.__patch_size, self.__patch_size * elements_from_start))
-            map_end = np.zeros((self.__patch_size, self.__patch_size * (total_map_fragments_row - elements_from_start - len(row))))
-            merged_row = np.concatenate([map_begin, *(fragment.get_image() for fragment in row), map_end], axis=1)
+            # we add missing fragments to the map fragments (empty images are loaded for them)
+
+            elements_to_end = total_map_fragments_row - elements_from_start - len(row)
+
+            for i in range(elements_from_start):
+                center_point = row[0].find_near_map_fragment_center(-1, 0)
+                row.insert(0, MapFragment(center_point, self.__projection, self.__buffer_radius, None, self.__img_resolution, self.__patch_size))
+
+            for i in range(elements_to_end):
+                center_point = row[0].find_near_map_fragment_center(1, 0)
+                row.insert(0, MapFragment(center_point, self.__projection, self.__buffer_radius, None,
+                                          self.__img_resolution, self.__patch_size))
+
+            merged_row = np.concatenate([fragment.get_image() for fragment in row], axis=1)
             merged_rows.append(merged_row)
 
-        self.__detected_area_merged = np.concatenate(merged_rows, axis=0).astype(np.uint8)
+        self.__detected_area_merged_image = np.concatenate(merged_rows, axis=0).astype(np.uint8)
         print("Merging map finished")
 
         fig = plt.figure()
 
-
-
         plt.axis("off")
-        plt.imshow(self.__detected_area_merged, cmap='gray')
+        plt.imshow(self.__detected_area_merged_image, cmap='gray')
         plt.savefig(f'src/area_detection/results/Edge_map.jpg', dpi=500, bbox_inches='tight')
 
 
@@ -287,10 +298,10 @@ class AreaDetector:
 
     def get_boundary_points(self) -> tuple[list[int], list[int]]:
         """ Returns points of the detected areas boundaries """
-        contours, hierarchy = cv.findContours(self.__detected_area_merged, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_TC89_KCOS)
+        contours, hierarchy = cv.findContours(self.__detected_area_merged_image, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_TC89_KCOS)
         # saving result as the image
-        image_contour = cv.cvtColor(self.__detected_area_merged, cv.COLOR_GRAY2BGR)  # Image for contours
-        image_points = cv.cvtColor(self.__detected_area_merged, cv.COLOR_GRAY2BGR)  # Image for points
+        image_contour = cv.cvtColor(self.__detected_area_merged_image, cv.COLOR_GRAY2BGR)  # Image for contours
+        image_points = cv.cvtColor(self.__detected_area_merged_image, cv.COLOR_GRAY2BGR)  # Image for points
 
         for contour in contours:
             cv.drawContours(image_contour, [contour], -1, (255, 0, 255), 2)
@@ -321,18 +332,40 @@ class AreaDetector:
 
         return contours, hierarchy
 
-    def get_coordinates_merged_map(self, point: PointData) -> tuple[int, int]:
-        """ Returns coordinates of the center point on the merged area map """
+    def get_coordinates_img_merged_map(self, point: PointData) -> tuple[int, int]:
+        """ Returns coordinates of the point on the merged area map image """
         row_num, col_num = self.__search_for_the_map_fragment(0, point)
         x, y = self.__detected_areas_map_fragments[row_num][col_num].convert_point_to_img_coordinates(point)
         return x + (self.__patch_size * col_num), y + (self.__patch_size * row_num)
 
-
-    def get_boundary_points_degrees(self):
-        """ Returns boundary points in degrees in format that would be easy to show on map """
-        pass
-        # TODO: implement this function
+    def calculate_coordinates_meters(self, img_coordinates: tuple[int, int]) -> tuple[float, float]:
+        """ Calculates img coordinates of point on the map in meters """
+        row_num, col_num = img_coordinates[1] // self.__patch_size, img_coordinates[0] // self.__patch_size
+        x, y = img_coordinates[0] % self.__patch_size, img_coordinates[1] % self.__patch_size
+        x_meters, y_meters = self.__detected_areas_map_fragments[row_num][col_num].convert_img_coordinates_to_map_coordinates(x, y)
+        return x_meters, y_meters
 
     def get_merged_map(self):
         """ Returns merged map of detected area """
-        return self.__detected_area_merged
+        return self.__detected_area_merged_image
+
+    def convert_boundary_points_to_degrees(self, contours: list[int]):
+        """ Converts boundary points into degree coordinates """
+        points = []
+
+        for contour in contours:
+            for point in contour:
+                point_tmp = tuple(point[0])
+                point = ee.Geometry.Point(self.calculate_coordinates_meters(point_tmp), self.__projection)
+                points.append(point)
+
+        points_collection = ee.FeatureCollection(points).map(
+            lambda element: element.setGeometry(element.geometry().transform('EPSG:4326'))
+        )
+
+        # If there will be more than 65 536 points, the function will fail
+        data = points_collection.getInfo()['features']
+
+        points = [point['geometry']['coordinates'] for point in data]
+
+        return points
