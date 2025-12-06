@@ -58,3 +58,9 @@ class AreaDetectionController:
         # for point in points_degrees:
         #     print(str(point[1]) + ',' + str(point[0]))
         return points_degrees
+
+    def get_contours(self) -> list[list[tuple[float, float]]]:
+        return self.__contours
+
+    def get_hierarchy(self) -> list[list[tuple[float, float]]]:
+        return self.__hierarchy

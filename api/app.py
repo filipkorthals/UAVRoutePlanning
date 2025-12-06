@@ -14,16 +14,16 @@ CORS(app, origins=["http://localhost:3000"])
 
 os.makedirs('static', exist_ok=True)
 
+uav_path_planner = UAVPathPlanner()
+
 @app.route('/')
 def siema():
     return 'siema'
 
-@app.route('/waypoints', methods=['POST'])
-def waypoints():
+@app.route('/area_detection', methods=['POST'])
+def start_area_detection():
     data = request.get_json()
     waypoints = [marker['position'] for marker in data]
-
-    uav_path_planner = UAVPathPlanner()
 
     # longitude, latitude = 53.324389, 18.455298
     # point = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
@@ -55,9 +55,27 @@ def waypoints():
     for point in points:
         print(point.get_coordinates_degrees())
 
+    detected_area_boundary = uav_path_planner.detect_area(points)
+
+    return detected_area_boundary
+
+@app.route('/plan_path', methods=['POST'])
+def plan_path():
+    data = request.get_json()
+    waypoints = [marker['position'] for marker in data]
+    points = []
+
+    projection = ee.Projection('EPSG:3035')
+
+    for waypoint in waypoints:
+        points.append(PointData(waypoint['lng'], waypoint['lat'], projection))
+
+    for point in points:
+        print(point.get_coordinates_degrees())
+
     uav_path_planner.plan_path(points)
 
-    return { "url": "http://127.0.0.1:5001/static/Planned_path.jpg" }
+    return {"url": "http://127.0.0.1:5001/static/Planned_path.jpg"}
 
 if __name__ == '__main__':
     app.run(debug=True)

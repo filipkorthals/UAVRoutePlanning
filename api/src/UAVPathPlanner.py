@@ -16,23 +16,24 @@ class UAVPathPlanner:
         self.__area_detection_controller = AreaDetectionController()
         self.__path_planner = PathPlanner()
 
-    def plan_path(self, points: list[PointData]):
-        """ Function that handles path planning for UAV """
+    def detect_area(self, points: list[PointData]) -> list[tuple[float, float]]:
         start = time.time()
         self.__area_detection_controller.initialize_with_points(points)
-        contours, hierarchy = self.__area_detection_controller.detect_areas()
-        points_coordinates = self.__area_detection_controller.get_boundary_coordinates() # points of detected area
+        self.__area_detection_controller.detect_areas()
+        points_coordinates = self.__area_detection_controller.get_boundary_coordinates()  # points of detected area
         # now coordinates need to be reversed before using them on map
         print("Area detection time:", str(time.time() - start), "seconds")
+        return points_coordinates
 
+    def plan_path(self, points: list[PointData]):
+        """ Function that handles path planning for UAV """
         start = time.time()
         self.__path_planner.resolution = 10
         scan_radius = 2000 / self.__path_planner.resolution
         self.__path_planner.algorithm = PathAlgorithm(scan_radius=scan_radius, predator_weight=1, distance_weight=5)
-        self.__path_planner.starting_point
         self.__path_planner.priority_field = np.array([self.__area_detection_controller.area_detector.
                                                       get_coordinates_img_merged_map(point) for point in points])
-        self.__path_planner.run_path_finding_detected_area(contours, hierarchy,
+        self.__path_planner.run_path_finding_detected_area(self.__area_detection_controller.get_contours(), self.__area_detection_controller.get_hierarchy(),
                                                            self.__area_detection_controller.get_merged_map(),
                                                            np.pi / 4)
         self.__path_planner.draw_path(self.__area_detection_controller.get_merged_map())

@@ -154,7 +154,6 @@ class MapFragment:
     def convert_img_coordinates_to_map_coordinates(self, x_img: int, y_img: int) -> tuple[float, float]:
         """ Converts point from map representation into the point coordinates that correspond to the real coordinates
         that are used by the map (in meters) """
-        # TODO: nie wiem czy ta funkcja działa trzeba sprawdzić
         buffer_origin_coordinates = self.get_buffer_origin_coordinates()
         x_map = buffer_origin_coordinates[0] + x_img * self.__img_resolution
         y_map = buffer_origin_coordinates[1] - y_img * self.__img_resolution

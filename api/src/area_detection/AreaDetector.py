@@ -366,6 +366,6 @@ class AreaDetector:
         # If there will be more than 65 536 points, the function will fail
         data = points_collection.getInfo()['features']
 
-        points = [point['geometry']['coordinates'] for point in data]
+        points = [{'lng': point['geometry']['coordinates'][0], 'lat': point['geometry']['coordinates'][1]} for point in data]
 
         return points

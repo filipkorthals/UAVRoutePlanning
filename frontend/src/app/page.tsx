@@ -28,7 +28,7 @@ const Home = () => {
 
   // TODO: naprawić port
   async function sendWaypoints() {
-    let response = await fetch("http://127.0.0.1:5001/waypoints", {
+    let response = await fetch("http://127.0.0.1:5001/area_detection", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
