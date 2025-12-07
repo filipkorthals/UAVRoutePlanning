@@ -10,7 +10,7 @@ import numpy as np
 import cv2 as cv
 import os
 
-""" Class that is responsible of detecting areas in images that contain results of Canny Edge Detection """
+""" Class that is responsible of detecting areas in images that contain results of edge detection """
 
 
 class AreaDetector:
@@ -18,12 +18,13 @@ class AreaDetector:
     def __init__(self, edge_map: geemap.Image, map_center: ee.Geometry.Point, projection: ee.Projection):
         self.__edge_map = edge_map
         self.__projection = projection
-        self.__map_center = map_center  # nie wiem czy to jest jeszcze potrzebne, na razie zostaje
+        self.__map_center = map_center
         self.__detected_areas_map_fragments = [[]]  # MapFragments objects stored in array
         self.__detected_area_merged_image = []
         self.__patch_size = 255
-        self.__img_resolution = 5  # to chyba może być przerzucone w całości do klasy map fragment :)
+        self.__img_resolution = 5
         self.__buffer_radius = ((self.__patch_size - 1) / 2) * self.__img_resolution
+        self.__points_distance = 100 # distance of generated points in meters
         # we subtract center point from the patch size
         self.__map_fragments_counter = 0
         self.__load_map_fragment(self.__map_center, 0, 0)
@@ -147,7 +148,8 @@ class AreaDetector:
 
     def run_area_detection(self, points: list[PointData]) -> None:
         """ Detects area that contains provided point """
-        # TODO: try to paralelize detecting areas
+        if len(points) > 2:
+            points = self.__generate_points_grid(points)
 
         for number, point in enumerate(points):
             print("Detecting area for point", str(number + 1))
@@ -247,7 +249,7 @@ class AreaDetector:
 
             for i in range(elements_to_end):
                 center_point = row[0].find_near_map_fragment_center(1, 0)
-                row.insert(0, MapFragment(center_point, self.__projection, self.__buffer_radius, None,
+                row.append(MapFragment(center_point, self.__projection, self.__buffer_radius, None,
                                           self.__img_resolution, self.__patch_size))
 
             merged_row = np.concatenate([fragment.get_image() for fragment in row], axis=1)
@@ -265,7 +267,6 @@ class AreaDetector:
 
     def prepare_for_points_extraction(self) -> None:
         """ Prepares detected areas on MapFragments for points extraction. Applies threshold and merges all fragments into one image """
-        # TODO: część z thresholdami i morfologią może się dziać równolegle - sprawdzić ile zajmuje to czasu
         counter = 1
         for row in range(len(self.__detected_areas_map_fragments)):
             for column in range(len(self.__detected_areas_map_fragments[row])):
@@ -365,7 +366,41 @@ class AreaDetector:
 
         # If there will be more than 65 536 points, the function will fail
         data = points_collection.getInfo()['features']
-
         points = [{'lng': point['geometry']['coordinates'][0], 'lat': point['geometry']['coordinates'][1]} for point in data]
+
+        return points
+
+    def __generate_points_grid(self, points: list[PointData]) -> list[PointData]:
+        """ Generates grid of points in the selected area of interest """
+        polygon_outline = points[:]
+        polygon_outline.append(points[0])
+        area_of_interest = ee.Geometry.Polygon([point.get_coordinates_degrees() for point in polygon_outline])
+
+        scaled_projection = self.__projection.atScale(self.__points_distance)
+        dummy_image = ee.Image(0).rename('dummy')
+
+        grid_image = dummy_image.reproject(
+            crs=scaled_projection,
+            scale=self.__points_distance
+        )
+
+        point_grid = grid_image.sample(
+            region=area_of_interest,
+            scale=self.__points_distance,
+            projection=scaled_projection,
+            geometries=True  # Returns points instead of just sampled values
+        )
+
+        point_grid = point_grid.map(
+            lambda element: element.setGeometry(element.geometry().transform('EPSG:4326'))
+        )
+
+        data = point_grid.getInfo()['features']
+        points_coordinates = [(point['geometry']['coordinates'][0], point['geometry']['coordinates'][1]) for point in
+                  data]
+
+        for coordinates in points_coordinates:
+            points.append(PointData(coordinates[0], coordinates[1], self.__projection))
+            #print(str(coordinates[1]) + ',' + str(coordinates[0]))
 
         return points
