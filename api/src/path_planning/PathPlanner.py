@@ -40,12 +40,12 @@ class PathPlanner:
         rect_rgb = cv2.cvtColor(merged_area, cv2.COLOR_BGR2RGB)
         plt.imshow(rect_rgb)
         plt.fill(self.priority_field[:, 0], self.priority_field[:, 1], "g",  alpha=0.3)
-        plt.plot(self._path[:, 0], self._path[:, 1], "r")
+        if self._path is not None:
+            plt.plot(self._path[:, 0], self._path[:, 1], "r")
         plt.plot(self.starting_point[0], self.starting_point[1], 'bo')
-        start = self._path[-1]
-        next_point = self._path[-2]
-        dx = next_point[0] - start[0]
-        dy = next_point[1] - start[1]
+        start = self.starting_point
+        dx = np.cos(self.starting_direction)
+        dy = np.sin(self.starting_direction)
 
         plt.quiver(start[0], start[1], dx, dy, color='b', angles='xy', scale_units='xy', scale=1)
         # plt.savefig('src/path_planning/results/Planned_path.jpg')
@@ -81,7 +81,7 @@ class PathPlanner:
     def validate_time(self, velocity: float, time_in_min: float) -> float:
         lengths = np.sqrt(np.sum(np.diff(self._path, axis=0) ** 2, axis=1))
         total_length = np.sum(lengths)
-        time_required = total_length * self.resolution / velocity * 60
+        time_required = total_length * self.resolution / velocity / 60
 
         return time_required / time_in_min
 

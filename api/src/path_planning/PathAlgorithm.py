@@ -124,11 +124,13 @@ class PathAlgorithm:
             # remove from further calculations
             visited[np.where(~visited)[0][best_next_idx]] = True
 
-        return np.array(path + [starting_point]), np.array(direction_history), np.array(turn_history)
+        return np.array([starting_point] + path + [starting_point]), np.array(direction_history), np.array(turn_history)
 
     def calculate_path(self, contours: list[int], hierarchy: list[int], starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array):
         contour_vertices, obstacles = self.process_contours(contours, hierarchy)
         grid_points = self.create_grid(contour_vertices, obstacles)
+        if grid_points.size == 0:
+            return None, None, None
         return self.traverse_the_grid(grid_points, starting_point, starting_direction, priority_field)
 
     def __str__(self):
