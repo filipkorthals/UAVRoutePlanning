@@ -1,9 +1,7 @@
 import ee
 import geemap
 import numpy as np
-from skimage.segmentation import flood_fill
 import cv2 as cv
-import matplotlib.pyplot as plt
 from .Direction import Direction
 from .PointData import PointData
 
@@ -16,12 +14,12 @@ WHITE = 255
 
 class MapFragment:
     def __init__(self, center_point: PointData, projection: ee.Projection, buffer_radius: float,
-                 edge_map: geemap.Map, img_resolution: int, patch_size: int):
+                 edge_map: geemap.Map, img_resolution: int, patch_size: int, scale: int):
         self.__buffer_radius = buffer_radius
         self.__img_resolution = img_resolution
         self.__projection = ee.Projection(projection)
         self.__center_point = center_point
-        self.__scale = 5
+        self.__scale = scale
         self.__patch_size = patch_size
         if edge_map is not None:
             self.__map_representation = self.__move_rectangle_to_numpy(edge_map)
@@ -64,7 +62,10 @@ class MapFragment:
     def run_flood_fill(self, x: int, y: int):
         """ Runs flood fill on map fragment - detected areas have value of FLOOD_FILL_COLOR to differentiate them from the edges """
         if self.__map_representation[y][x] == BLACK:
-            self.__map_representation[:] = flood_fill(self.__map_representation, (y, x), FLOOD_FILL_COLOR)
+            if self.__map_representation.dtype != np.float32:
+                self.__map_representation = self.__map_representation.astype(np.float32)
+            result = cv.floodFill(self.__map_representation, None, (x, y), FLOOD_FILL_COLOR)
+            self.__map_representation[:] = result[1]
 
     def apply_two_thresholds(self, threshold1: float = 0.0, threshold2: float = 1.0):
         """ Applies thresholding with two thresholds on map fragment to extract detected areas from image """
