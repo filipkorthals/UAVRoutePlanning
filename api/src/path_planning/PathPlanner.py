@@ -175,6 +175,7 @@ class PathPlanner:
             else:
                 smoothed_path += [corner_point]
 
+        smoothed_path += [self._path[-2]]
         smoothed_path += [self._path[-1]]
 
         return np.array(smoothed_path)
