@@ -55,8 +55,8 @@ class AreaDetectionController:
     def get_boundary_coordinates(self) -> list[tuple[float, float]]:
         points_degrees = self.area_detector.convert_boundary_points_to_degrees(self.__contours)
         # COORDINATES ARE IN LON LAT FORMAT!
-        # for point in points_degrees:
-        #     print(str(point[1]) + ',' + str(point[0]))
+        for point in points_degrees:
+            print(str(point['lat']) + ',' + str(point['lng']))
         return points_degrees
 
     def get_contours(self) -> list[list[tuple[float, float]]]:

@@ -1,11 +1,11 @@
 import ee
 import geemap
-import pandas as pd
 
 from .MapFragment import MapFragment
 from .Direction import Direction
 from .PointData import PointData
 import matplotlib.pyplot as plt
+import math
 import numpy as np
 import cv2 as cv
 import os
@@ -22,23 +22,24 @@ class AreaDetector:
         self.__detected_areas_map_fragments = [[]]  # MapFragments objects stored in array
         self.__detected_area_merged_image = []
         self.__patch_size = 255
-        self.__img_resolution = 5
+        self.__img_resolution = 10
         self.__buffer_radius = ((self.__patch_size - 1) / 2) * self.__img_resolution
         self.__points_distance = 100 # distance of generated points in meters
         # we subtract center point from the patch size
         self.__map_fragments_counter = 0
+        self.__BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        os.makedirs(self.__BASE_DIR + '/results', exist_ok=True)
+        os.makedirs(self.__BASE_DIR + '/results/thresholding', exist_ok=True)
+        os.makedirs(self.__BASE_DIR + '/results/morphology', exist_ok=True)
+        os.makedirs(self.__BASE_DIR + '/results/contour_detection', exist_ok=True)
+        os.makedirs(self.__BASE_DIR + '/results/edges', exist_ok=True)
         self.__load_map_fragment(self.__map_center, 0, 0)
-        os.makedirs('src/area_detection/results', exist_ok=True)
-        os.makedirs('src/area_detection/results/thresholding', exist_ok=True)
-        os.makedirs('src/area_detection/results/morphology', exist_ok=True)
-        os.makedirs('src/area_detection/results/contour_detection', exist_ok=True)
-        os.makedirs('src/area_detection/results/edges', exist_ok=True)
 
     def __load_map_fragment(self, center_point: PointData, x_pos_to_insert: int, y_pos_to_insert: int):
         """ Initiates a map around center point of image """
         print("Loading map fragment")
         new_map_fragment = MapFragment(center_point, self.__projection, self.__buffer_radius, self.__edge_map,
-                                       self.__img_resolution, self.__patch_size)
+                                       self.__img_resolution, self.__patch_size, self.__img_resolution)
         self.__detected_areas_map_fragments[y_pos_to_insert].insert(x_pos_to_insert, new_map_fragment)
 
         self.__map_fragments_counter += 1
@@ -47,7 +48,7 @@ class AreaDetector:
 
         ax.axis("off")
         ax.imshow(new_map_fragment.get_image(), cmap='gray')
-        fig.savefig(f'src/area_detection/results/edges/Contours' + str(self.__map_fragments_counter) + '.jpg', dpi=500, bbox_inches='tight')
+        fig.savefig(self.__BASE_DIR + '/results/edges/Contours' + str(self.__map_fragments_counter) + '.jpg', dpi=500, bbox_inches='tight')
 
         plt.close(fig)
 
@@ -148,6 +149,8 @@ class AreaDetector:
 
     def run_area_detection(self, points: list[PointData]) -> None:
         """ Detects area that contains provided point """
+        points = self.__sort_points(points, self.__map_center)
+
         if len(points) > 2:
             points = self.__generate_points_grid(points)
 
@@ -161,6 +164,17 @@ class AreaDetector:
             found_map_fragment.run_flood_fill(x, y)
 
             self.detect_in_adjacent_map_fragments(found_map_fragment, row_num)
+
+    def __sort_points(self, points: list[PointData], center_point: PointData) -> list[PointData]:
+        """ Sorts points that they are in counter-clockwise order """
+
+        def get_angle(point: PointData) -> float:
+            """ Returns the angle in between two points """
+            center_x, center_y = center_point.get_coordinates_meters()
+            point_x, point_y = point.get_coordinates_meters()
+            return math.atan2(point_y - center_y, point_x - center_x)
+
+        return sorted(points, key=get_angle)
 
     def detect_in_adjacent_map_fragments(self, found_map_fragment: MapFragment, row_num: int) -> None:
         """ Runs area detection in adjacent map fragments if this is necessary - when area detected previously is
@@ -245,12 +259,12 @@ class AreaDetector:
 
             for i in range(elements_from_start):
                 center_point = row[0].find_near_map_fragment_center(-1, 0)
-                row.insert(0, MapFragment(center_point, self.__projection, self.__buffer_radius, None, self.__img_resolution, self.__patch_size))
+                row.insert(0, MapFragment(center_point, self.__projection, self.__buffer_radius, None, self.__img_resolution, self.__patch_size, self.__img_resolution))
 
             for i in range(elements_to_end):
                 center_point = row[0].find_near_map_fragment_center(1, 0)
                 row.append(MapFragment(center_point, self.__projection, self.__buffer_radius, None,
-                                          self.__img_resolution, self.__patch_size))
+                                          self.__img_resolution, self.__patch_size, self.__img_resolution))
 
             merged_row = np.concatenate([fragment.get_image() for fragment in row], axis=1)
             merged_rows.append(merged_row)
@@ -262,7 +276,7 @@ class AreaDetector:
 
         plt.axis("off")
         plt.imshow(self.__detected_area_merged_image, cmap='gray')
-        plt.savefig(f'src/area_detection/results/Edge_map.jpg', dpi=500, bbox_inches='tight')
+        plt.savefig(self.__BASE_DIR + '/results/Edge_map.jpg', dpi=500, bbox_inches='tight')
 
 
     def prepare_for_points_extraction(self) -> None:
@@ -275,7 +289,7 @@ class AreaDetector:
                 plt.figure()
                 plt.imshow(self.__detected_areas_map_fragments[row][column].get_image(), cmap='gray')
                 plt.axis("off")
-                plt.savefig(f'src/area_detection/results/thresholding/Thresholding{str(counter)}.jpg', dpi=500, bbox_inches='tight')
+                plt.savefig(self.__BASE_DIR + f'/results/thresholding/Thresholding{str(counter)}.jpg', dpi=500, bbox_inches='tight')
                 plt.close()
 
                 self.__detected_areas_map_fragments[row][column].apply_morphology_close(7)
@@ -283,7 +297,7 @@ class AreaDetector:
                 plt.figure()
                 plt.imshow(self.__detected_areas_map_fragments[row][column].get_image(), cmap='gray')
                 plt.axis("off")
-                plt.savefig(f'src/area_detection/results/morphology/Morphology{str(counter)}.jpg', dpi=500, bbox_inches='tight')
+                plt.savefig(self.__BASE_DIR + f'/results/morphology/Morphology{str(counter)}.jpg', dpi=500, bbox_inches='tight')
                 plt.close()
 
                 self.__detected_areas_map_fragments[row][column].apply_one_threshold()
@@ -328,7 +342,7 @@ class AreaDetector:
         plt.imshow(image_points_rgb, cmap='gray')
         plt.title("Contour Points")
         plt.axis('off')
-        plt.savefig('src/area_detection/results/contour_detection/Contour.jpg', dpi=500, bbox_inches='tight')
+        plt.savefig(self.__BASE_DIR + '/results/contour_detection/Contour.jpg', dpi=500, bbox_inches='tight')
         plt.close()
 
         return contours, hierarchy
@@ -401,6 +415,6 @@ class AreaDetector:
 
         for coordinates in points_coordinates:
             points.append(PointData(coordinates[0], coordinates[1], self.__projection))
-            #print(str(coordinates[1]) + ',' + str(coordinates[0]))
+            print(str(coordinates[1]) + ',' + str(coordinates[0]))
 
         return points
