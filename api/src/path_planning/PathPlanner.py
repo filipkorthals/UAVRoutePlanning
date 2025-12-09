@@ -3,9 +3,20 @@ import cv2
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
+from numpy import tan
 from numpy.ma.core import arctan
 from scipy.spatial import distance_matrix
 import os
+
+
+def calculate_tangent_points(point: np.array, radius: float):
+    distance_sq = np.sum(point ** 2)
+    offset_from_centre = (radius ** 2) / distance_sq * point
+    inverse_vector = np.array([-point[1], point[0]])
+    delta = radius / distance_sq * np.sqrt(distance_sq - radius ** 2) * inverse_vector
+
+    point1, point2 = offset_from_centre + delta, offset_from_centre - delta
+    return point1, point2
 
 
 class PathPlanner:
@@ -102,3 +113,70 @@ class PathPlanner:
                 maximal_turn = turn
 
         return maximal_turn
+
+    def smoothen_path(self, velocity: float, bank_angle: float, margin: float):
+        velocity_in_m = velocity * 1000 / 3600
+        turn_radius = velocity_in_m**2 / (9.81 * tan(bank_angle))
+        turn_radius_in_px = turn_radius / self.resolution
+        margin_in_px = margin / self.resolution
+
+        tangent_points_distance = turn_radius_in_px * np.abs(np.tan(self._turns/2))
+        tangent_arc_distance = turn_radius_in_px * (1/np.cos(self._turns/2) - 1)
+
+        points_to_arc = (tangent_points_distance > 0.001) & (tangent_arc_distance <= margin_in_px)
+
+        points_to_expand = tangent_arc_distance > margin_in_px
+
+        smoothed_path = [self._path[0]]
+
+        for index in range(1, self._turns.size):
+            leg1_point = self._path[index-1]
+            corner_point = self._path[index]
+            leg2_point = self._path[index+1]
+
+            if points_to_arc[index]:
+
+                vector21 = (leg1_point - corner_point)
+                vector23 = (leg2_point - corner_point)
+
+                point12 = corner_point + tangent_points_distance[index] * vector21/np.linalg.norm(vector21)
+                point23 = corner_point + tangent_points_distance[index] * vector23/np.linalg.norm(vector23)
+
+                smoothed_path += [point12, point23]
+
+            elif points_to_expand[index]:
+
+                middle = (leg2_point + leg1_point) / 2
+                vector2m = middle - corner_point
+
+                centre = corner_point + turn_radius_in_px * vector2m/np.linalg.norm(vector2m)
+
+                # first point
+                moved_point = leg1_point - centre
+                point1, point2 = calculate_tangent_points(moved_point, turn_radius_in_px)
+
+                chosen_point = None
+                if self._turns[index] < 0:
+                    chosen_point = point2
+                else:
+                    chosen_point = point1
+
+                moved_point = leg2_point - centre
+                point1, point2 = calculate_tangent_points(moved_point, turn_radius_in_px)
+
+                chosen_point2 = None
+                if self._turns[index] > 0:
+                    chosen_point2 = point2
+                else:
+                    chosen_point2 = point1
+
+                smoothed_path += [chosen_point+centre, corner_point, chosen_point2+centre]
+
+            else:
+                smoothed_path += [corner_point]
+
+        smoothed_path += [self._path[-1]]
+
+        return np.array(smoothed_path)
+
+
