@@ -17,8 +17,8 @@ os.makedirs('static', exist_ok=True)
 uav_path_planner = UAVPathPlanner()
 
 @app.route('/')
-def siema():
-    return 'siema'
+def hello_world():
+    return 'Hello world!'
 
 @app.route('/area_detection', methods=['POST'])
 def start_area_detection():
@@ -73,7 +73,8 @@ def plan_path():
     for point in points:
         print(point.get_coordinates_degrees())
 
-    uav_path_planner.plan_path(points)
+    # todo podpiac tutaj dane prawdziwe z frontu
+    uav_path_planner.plan_path(points, 70, 120)
 
     return {"url": "http://127.0.0.1:5001/static/Planned_path.jpg"}
 

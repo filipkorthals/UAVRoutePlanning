@@ -27,6 +27,7 @@ class PathPlanner:
         self._path: np.array = None
         self._directions: np.array = None
         self._turns: np.array = None
+        self.time_travelled = 0
         self.img_path: str = None
         self.starting_point: np.array = None
         self.starting_direction: float = None
@@ -76,25 +77,7 @@ class PathPlanner:
             return
         self.starting_point = [centroid_x, centroid_y]
         self.starting_direction = starting_direction
-        self._path, self._directions, self._turns = self.algorithm.calculate_path(contours, hierarchy, self.starting_point, self.starting_direction, self.priority_field)
-
-    def calculate_path_score(self) -> (float, float):
-        lengths = np.sqrt(np.sum(np.diff(self._path, axis=0)**2, axis=1))
-        total_length = np.sum(lengths)
-
-        number_of_no_turns = np.count_nonzero((self._turns > -0.1) & (self._turns < 0.1))
-        number_of_small_turns = np.count_nonzero((self._turns > -np.pi/3) & (self._turns < np.pi/3)) - number_of_no_turns
-        number_of_big_turns = np.count_nonzero(self._turns) - number_of_small_turns - number_of_small_turns
-
-        turn_score = number_of_small_turns * 0.5 + number_of_big_turns
-        return total_length, turn_score
-
-    def validate_time(self, velocity: float, time_in_min: float) -> float:
-        lengths = np.sqrt(np.sum(np.diff(self._path, axis=0) ** 2, axis=1))
-        total_length = np.sum(lengths)
-        time_required = total_length * self.resolution / velocity / 60
-
-        return time_required / time_in_min
+        self._path, self._directions, self._turns, self.time_travelled = self.algorithm.calculate_path(contours, hierarchy, self.starting_point, self.starting_direction, self.priority_field)
 
     def validate_turns(self, velocity: float) -> float:
         maximal_turn = 0
@@ -175,9 +158,8 @@ class PathPlanner:
             else:
                 smoothed_path += [corner_point]
 
-        smoothed_path += [self._path[-2]]
         smoothed_path += [self._path[-1]]
 
-        return np.array(smoothed_path)
+        self._path = np.array(smoothed_path)
 
 

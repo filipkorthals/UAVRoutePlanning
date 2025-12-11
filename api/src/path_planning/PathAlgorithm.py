@@ -8,12 +8,15 @@ from matplotlib.path import Path
 class PathAlgorithm:
     def __init__(self, scan_radius: float = 200, scan_accuracy: float = 1,
                  distance_weight: float = 1, turn_weight: float = 1,
-                 predator_weight: float = 0.5):
+                 predator_weight: float = 0.5, resolution: float = 20, travel_time: float = 30, velocity: float = 20):
         self.scan_radius = scan_radius
         self.scan_accuracy = scan_accuracy
         self.distance_weight = distance_weight
         self.turn_weight = turn_weight
         self.predator_weight = predator_weight
+        self.resolution = resolution
+        self.travel_time= travel_time
+        self.velocity = velocity
 
     def get_contours(self, path: str) -> np.array:
         rect = cv2.imread(path)
@@ -79,9 +82,9 @@ class PathAlgorithm:
         angle_cost = angle_cost.reshape(-1, 1)
         return angle_cost, target_angles
 
-    def traverse_the_grid(self, grid_points: np.array, starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array):
+    def traverse_the_grid(self, grid_points: np.array, starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array, float):
         visited = np.zeros(len(grid_points), dtype=bool)
-        path, direction_history, turn_history = [], [], []
+        path, direction_history, turn_history = [starting_point], [], []
 
         current_point = starting_point
         current_direction = starting_direction
@@ -98,6 +101,9 @@ class PathAlgorithm:
         else:
             priority_factor = np.array([1 for _ in grid_points])
             priority_factor = priority_factor.reshape((priority_factor.size, 1))
+
+        time_travelled = 0
+        time_required_to_get_back = 0
 
         while not np.all(visited):
             print("Visited " + str(sum(visited)) + " out of " + str(grid_points.size / 2) + " waypoints")
@@ -116,6 +122,11 @@ class PathAlgorithm:
             current_point = unvisited_grid[best_next_idx]
             current_direction = target_angles[best_next_idx]
 
+            # add time travelled to sum
+            time_required = np.linalg.norm(current_point - path[-1]) * self.resolution / self.velocity / 60
+            time_travelled += time_required
+            time_required_to_get_back = np.linalg.norm(current_point - starting_point) * self.resolution / self.velocity / 60
+
             # update output
             path.append(current_point)
             direction_history.append(current_direction)
@@ -124,7 +135,17 @@ class PathAlgorithm:
             # remove from further calculations
             visited[np.where(~visited)[0][best_next_idx]] = True
 
-        return np.array([starting_point] + path + [starting_point]), np.array(direction_history), np.array(turn_history)
+            if time_travelled + time_required_to_get_back >= self.travel_time * 0.99:
+                print("Path planning stopping because of time")
+                break
+
+        time_travelled += time_required_to_get_back
+        delta_vector = starting_point - current_point
+        target_angles = np.arctan2(delta_vector[1], delta_vector[0])
+        angle_cost = target_angles - current_direction  # compensate for current direction
+        angle_cost = (angle_cost + np.pi) % (2 * np.pi) - np.pi
+
+        return np.array(path + [starting_point]), np.array(direction_history+[target_angles]), np.array(turn_history+[angle_cost]), time_travelled
 
     def calculate_path(self, contours: list[int], hierarchy: list[int], starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array):
         contour_vertices, obstacles = self.process_contours(contours, hierarchy)
