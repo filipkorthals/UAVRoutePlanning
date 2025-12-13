@@ -25,7 +25,7 @@ class UAVPathPlanner:
         print("Area detection time:", str(time.time() - start), "seconds")
         return points_coordinates
 
-    def plan_path(self, points: list[PointData], velocity: float, travel_time: float):
+    def plan_path(self, velocity: float, travel_time: float):
         """ Function that handles path planning for UAV """
         start = time.time()
         self.__path_planner.resolution = 20
@@ -36,10 +36,10 @@ class UAVPathPlanner:
 
         self.__path_planner.algorithm = PathAlgorithm(scan_radius=scan_radius, predator_weight=1, distance_weight=5, resolution=self.__path_planner.resolution, velocity=velocity_in_m, travel_time=travel_time)
         self.__path_planner.priority_field = np.array([self.__area_detection_controller.area_detector.
-                                                      get_coordinates_img_merged_map(point) for point in points])
+                                                      get_coordinates_img_merged_map(point) for point in self.__area_detection_controller.get_points_list()])
         self.__path_planner.run_path_finding_detected_area(self.__area_detection_controller.get_contours(), self.__area_detection_controller.get_hierarchy(),
                                                            self.__area_detection_controller.get_merged_map(),
-                                                           np.pi / 4)
+                                                           np.pi / 4, self.__area_detection_controller.get_coordinates_on_result_map(self.__area_detection_controller.get_points_list()[0]))
         self.__path_planner.smoothen_path(velocity, np.pi/6, 250)
         self.__path_planner.draw_path(self.__area_detection_controller.get_merged_map())
         print("Path planning time:", str(time.time() - start), "seconds")

@@ -67,15 +67,15 @@ class PathPlanner:
 
         plt.savefig(static_path)
 
-    def run_path_finding_detected_area(self, contours: list[int], hierarchy: list[int], merged_map: np.array, starting_direction: float):
-        M = cv2.moments(merged_map)
-        if M["m00"] != 0:
-            centroid_x = int(M["m10"] / M["m00"])
-            centroid_y = int(M["m01"] / M["m00"])
-        else:
-            print("No detected area")
-            return
-        self.starting_point = [centroid_x, centroid_y]
+    def run_path_finding_detected_area(self, contours: list[int], hierarchy: list[int], merged_map: np.array, starting_direction: float, starting_point: tuple[int, int]):
+        # M = cv2.moments(merged_map)
+        # if M["m00"] != 0:
+        #     centroid_x = int(M["m10"] / M["m00"])
+        #     centroid_y = int(M["m01"] / M["m00"])
+        # else:
+        #     print("No detected area")
+        #     return
+        self.starting_point = starting_point
         self.starting_direction = starting_direction
         self._path, self._directions, self._turns, self.time_travelled = self.algorithm.calculate_path(contours, hierarchy, self.starting_point, self.starting_direction, self.priority_field)
 

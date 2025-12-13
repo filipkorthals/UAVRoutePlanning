@@ -1,3 +1,5 @@
+import math
+
 import ee
 from .AreaDetector import AreaDetector
 from .EdgeDetector import EdgeDetector
@@ -20,12 +22,24 @@ class AreaDetectionController:
 
     def initialize_with_points(self, points_list: list[PointData]):
         """ Initializes area detection with passed points """
-        self.__points_list = points_list
         self.__points_feature_collection = ee.FeatureCollection(
             [ee.Feature(point.get_gee_point().transform(self.__projection)) for point in
              points_list])  # point is created as EPSG:4326 projection by default
-        self.__map_center = PointData.from_gee_point(self.__points_feature_collection.geometry().centroid(), self.__projection)
+        self.__map_center = PointData.from_gee_point(self.__points_feature_collection.geometry().centroid(),
+                                                     self.__projection)
+        self.__points_list = self.__sort_points(points_list)
         self.__edge_detector = EdgeDetector(self.__points_feature_collection, self.__map_center)
+
+    def __sort_points(self, points: list[PointData]) -> list[PointData]:
+        """ Sorts points that they are in counter-clockwise order """
+
+        def get_angle(point: PointData) -> float:
+            """ Returns the angle in between two points """
+            center_x, center_y = self.__map_center.get_coordinates_meters()
+            point_x, point_y = point.get_coordinates_meters()
+            return math.atan2(point_x - center_x, point_y - center_y)
+
+        return sorted(points, key=get_angle)
 
     def detect_areas(self) -> tuple[list[int], list[int]]:
         """ Detects area for all points that were provided to class """
@@ -64,3 +78,9 @@ class AreaDetectionController:
 
     def get_hierarchy(self) -> list[list[tuple[float, float]]]:
         return self.__hierarchy
+
+    def get_points_list(self) -> list[PointData]:
+        return self.__points_list
+
+    def get_coordinates_on_result_map(self, point: PointData) -> tuple[int, int]:
+        return self.area_detector.get_coordinates_img_merged_map(point)

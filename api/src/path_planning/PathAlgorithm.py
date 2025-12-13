@@ -84,9 +84,9 @@ class PathAlgorithm:
 
     def traverse_the_grid(self, grid_points: np.array, starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array, float):
         visited = np.zeros(len(grid_points), dtype=bool)
-        path, direction_history, turn_history = [starting_point], [], []
+        path, direction_history, turn_history = [list(starting_point)], [], []
 
-        current_point = starting_point
+        current_point = [list(starting_point)]
         current_direction = starting_direction
 
         predator = np.mean(grid_points, axis=0)
@@ -109,7 +109,7 @@ class PathAlgorithm:
             print("Visited " + str(sum(visited)) + " out of " + str(grid_points.size / 2) + " waypoints")
             unvisited_grid = grid_points[~visited]
             # calculate costs
-            distance_cost = distance_matrix(unvisited_grid, [current_point]) / self.scan_radius
+            distance_cost = distance_matrix(unvisited_grid, current_point) / self.scan_radius
             angle_cost, target_angles = self.calculate_turn_cost(unvisited_grid, current_point, current_direction)
             unvisited_predator_cost = predator_cost[~visited]
 
@@ -128,7 +128,7 @@ class PathAlgorithm:
             time_required_to_get_back = np.linalg.norm(current_point - starting_point) * self.resolution / self.velocity / 60
 
             # update output
-            path.append(current_point)
+            path.append(list(current_point))
             direction_history.append(current_direction)
             turn_history.append(angle_cost[best_next_idx])
 
@@ -145,7 +145,9 @@ class PathAlgorithm:
         angle_cost = target_angles - current_direction  # compensate for current direction
         angle_cost = (angle_cost + np.pi) % (2 * np.pi) - np.pi
 
-        return np.array(path + [starting_point]), np.array(direction_history+[target_angles]), np.array(turn_history+[angle_cost]), time_travelled
+        test = np.array(turn_history+[[angle_cost]])
+
+        return np.array(path + [list(starting_point)]), np.array(direction_history+[target_angles]), np.array(turn_history+[[angle_cost]]), time_travelled
 
     def calculate_path(self, contours: list[int], hierarchy: list[int], starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array):
         contour_vertices, obstacles = self.process_contours(contours, hierarchy)

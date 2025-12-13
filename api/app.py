@@ -57,6 +57,8 @@ def start_area_detection():
 
     detected_area_boundary = uav_path_planner.detect_area(points)
 
+    uav_path_planner.plan_path(velocity=90, travel_time=40)
+
     return detected_area_boundary
 
 @app.route('/plan_path', methods=['POST'])

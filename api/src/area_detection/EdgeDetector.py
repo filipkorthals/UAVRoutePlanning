@@ -11,8 +11,7 @@ class EdgeDetector:
                                ('2025-05-01', '2025-10-01')]  # time period used to get satellite imagery
         self.__bands = ['B8', 'B4', 'B3', 'B2', 'B11']  # band used to calculate superpixels in SNIC
         # B8 and B4 bands need to be passed as NDVI is calculated using them
-        self.__thresholds = [0.06,
-                             0.1]  # low and high threshold used for canny detection algorithm [low_band, high_band]
+        self.__thresholds = [0.06, 0.1]  # low and high threshold used for canny detection algorithm [low_band, high_band]
         self.__sigma = 3  # sigma value used for image smoothing during edge detection
         self.__distance = 5  # max distance between edges to be connected
         self.__scale = 20  # scale that is used to show results on GEE Map
@@ -109,7 +108,6 @@ class EdgeDetector:
         mean_band_image = self.__image.select([name for name in self.__image.bandNames().getInfo() if '_mean' in name])
 
         merged_band = (ee.ImageCollection(mean_band_image).toBands()).reduce(ee.Reducer.max())
-        # merged_band = merged_band.selfMask().unmask(0).focalMax(10)  # applying dilation to make edges thicker
         merged_band = merged_band.focalMax(25, units="meters").focalMin(25, units="meters")  # applying opening to connect edges
         self.__image = self.__image.addBands(merged_band.rename("merged_band"))
 

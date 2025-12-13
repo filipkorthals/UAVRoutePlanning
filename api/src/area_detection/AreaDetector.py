@@ -5,7 +5,6 @@ from .MapFragment import MapFragment
 from .Direction import Direction
 from .PointData import PointData
 import matplotlib.pyplot as plt
-import math
 import numpy as np
 import cv2 as cv
 import os
@@ -149,12 +148,11 @@ class AreaDetector:
 
     def run_area_detection(self, points: list[PointData]) -> None:
         """ Detects area that contains provided point """
-        points = self.__sort_points(points, self.__map_center)
-
+        points_grid = points[:]
         if len(points) > 2:
-            points = self.__generate_points_grid(points)
+            self.__generate_points_grid(points_grid)
 
-        for number, point in enumerate(points):
+        for number, point in enumerate(points_grid):
             print("Detecting area for point", str(number + 1))
             # searching for corresponding map fragment for the point
             row_num, col_num = self.__search_for_the_map_fragment(0, point)
@@ -164,17 +162,6 @@ class AreaDetector:
             found_map_fragment.run_flood_fill(x, y)
 
             self.detect_in_adjacent_map_fragments(found_map_fragment, row_num)
-
-    def __sort_points(self, points: list[PointData], center_point: PointData) -> list[PointData]:
-        """ Sorts points that they are in counter-clockwise order """
-
-        def get_angle(point: PointData) -> float:
-            """ Returns the angle in between two points """
-            center_x, center_y = center_point.get_coordinates_meters()
-            point_x, point_y = point.get_coordinates_meters()
-            return math.atan2(point_y - center_y, point_x - center_x)
-
-        return sorted(points, key=get_angle)
 
     def detect_in_adjacent_map_fragments(self, found_map_fragment: MapFragment, row_num: int) -> None:
         """ Runs area detection in adjacent map fragments if this is necessary - when area detected previously is
