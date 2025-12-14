@@ -151,7 +151,7 @@ class PathAlgorithm:
 
         return np.array(path + [starting_point]), np.array(direction_history+[target_angles]), np.array(turn_history), time_travelled
 
-    def calculate_path(self, contours: list[int], hierarchy: list[int], starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array):
+    def calculate_path(self, contours: list[int], hierarchy: list[int], starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array, float):
         contour_vertices, obstacles = self.process_contours(contours, hierarchy)
         grid_points = self.create_grid(contour_vertices, obstacles)
         if grid_points.size == 0:
