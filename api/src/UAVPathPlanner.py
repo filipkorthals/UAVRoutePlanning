@@ -34,7 +34,7 @@ class UAVPathPlanner:
         # velocity needs to be converted from kmph to mps:
         velocity_in_m = velocity * 1000 / 3600
 
-        self.__path_planner.algorithm = PathAlgorithm(scan_radius=scan_radius, predator_weight=1, distance_weight=5, resolution=self.__path_planner.resolution, velocity=velocity_in_m, travel_time=travel_time)
+        self.__path_planner.algorithm = PathAlgorithm(scan_radius=scan_radius, scan_accuracy=2, predator_weight=1.5, distance_weight=1.5, turn_weight=0, resolution=self.__path_planner.resolution, velocity=velocity_in_m, travel_time=travel_time)
         self.__path_planner.priority_field = np.array([self.__area_detection_controller.area_detector.
                                                       get_coordinates_img_merged_map(point) for point in points])
         self.__path_planner.run_path_finding_detected_area(self.__area_detection_controller.get_contours(), self.__area_detection_controller.get_hierarchy(),
@@ -42,8 +42,8 @@ class UAVPathPlanner:
                                                            np.pi / 4)
         if self.__path_planner._path is None:
             return []
-        self.__path_planner.smoothen_path(velocity, np.pi/6, 250)
-        self.__path_planner.draw_path(self.__area_detection_controller.get_merged_map())
+        self.__path_planner.smoothen_path(velocity, np.pi/6, 100)
+        self.__path_planner.draw_path(self.__area_detection_controller.get_merged_map(), 0)
         print("Path planning time:", str(time.time() - start), "seconds")
         return self.__area_detection_controller.area_detector.convert_path_points_to_degrees(self.__path_planner._path)
 

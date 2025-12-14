@@ -6,7 +6,7 @@ from matplotlib.path import Path
 
 
 class PathAlgorithm:
-    def __init__(self, scan_radius: float = 200, scan_accuracy: float = 1,
+    def __init__(self, scan_radius: float = 200, scan_accuracy: float = 2,
                  distance_weight: float = 1, turn_weight: float = 1,
                  predator_weight: float = 0.5, resolution: float = 20, travel_time: float = 30, velocity: float = 20):
         self.scan_radius = scan_radius
@@ -148,7 +148,7 @@ class PathAlgorithm:
         angle_cost = angle_cost.reshape(-1, 1)
 
         turn_history.append(angle_cost[0])
-
+        print(time_travelled)
         return np.array(path + [starting_point]), np.array(direction_history+[target_angles]), np.array(turn_history), time_travelled
 
     def calculate_path(self, contours: list[int], hierarchy: list[int], starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array, float):

@@ -67,15 +67,10 @@ class PathPlanner:
 
         plt.savefig(static_path)
 
-    def run_path_finding_detected_area(self, contours: list[int], hierarchy: list[int], merged_map: np.array, starting_direction: float):
-        M = cv2.moments(merged_map)
-        if M["m00"] != 0:
-            centroid_x = int(M["m10"] / M["m00"])
-            centroid_y = int(M["m01"] / M["m00"])
-        else:
-            print("No detected area")
-            return
-        self.starting_point = [centroid_x, centroid_y]
+    def run_path_finding_detected_area(self, contours: list[int], hierarchy: list[int], merged_map: np.array,
+                                       starting_direction: float):
+
+        self.starting_point = self.priority_field[0, :]
         self.starting_direction = starting_direction
         self._path, self._directions, self._turns, self.time_travelled = self.algorithm.calculate_path(contours,
                                                                                                        hierarchy,
@@ -122,6 +117,11 @@ class PathPlanner:
             corner_point = self._path[index]
             leg2_point = self._path[index + 1]
 
+            if np.linalg.norm(leg1_point - corner_point) < turn_radius_in_px or np.linalg.norm(leg2_point - corner_point) < turn_radius_in_px:
+                smoothed_path += [corner_point]
+                print("Warning: dangerous maneouvers: (bank angle > "+ str(bank_angle*180/np.pi)+"deg) may be required")
+                continue
+
             if points_to_arc[index]:
 
                 vector21 = (leg1_point - corner_point)
@@ -167,4 +167,7 @@ class PathPlanner:
 
         self._path = np.array(smoothed_path)
 
-
+    def calculate_length(self):
+        diffs = np.diff(self._path, axis=0)
+        segment_lengths = np.linalg.norm(diffs, axis=1)
+        return segment_lengths.sum()
