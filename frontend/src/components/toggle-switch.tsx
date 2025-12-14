@@ -3,9 +3,13 @@
 import clsx from "clsx";
 import { useState } from "react";
 
-const ToggleSwitch = () => {
-  const [isChecked, setIsChecked] = useState(false);
-
+const ToggleSwitch = ({
+  isChecked,
+  setIsChecked,
+}: {
+  isChecked: boolean;
+  setIsChecked: (value: boolean) => void;
+}) => {
   const customCheckbox = clsx(
     "absolute cursor-pointer w-full h-full rounded-full before:content-[] before:absolute before:h-6 before:w-6 before:rounded-full before:bg-white before:left-1 before:top-1 before:duration-200 duration-200",
     {

@@ -1,10 +1,11 @@
-from flask import Flask, request
+from flask import Flask, request, Response
 from flask_cors import CORS
 from api.src.UAVPathPlanner import UAVPathPlanner
 from api.src.area_detection.PointData import PointData
 import ee
 import os
 import matplotlib
+import json
 
 matplotlib.use("Agg") 
 
@@ -20,30 +21,10 @@ uav_path_planner = UAVPathPlanner()
 def hello_world():
     return 'Hello world!'
 
-@app.route('/area_detection', methods=['POST'])
+@app.route('/waypoints', methods=['POST'])
 def start_area_detection():
     data = request.get_json()
-    waypoints = [marker['position'] for marker in data]
-
-    # longitude, latitude = 53.324389, 18.455298
-    # point = PointData(latitude, longitude, ee.Projection('EPSG:3035'))
-
-    # longitude2, latitude2 = 53.325556, 18.443333
-    # point2 = PointData(latitude2, longitude2, ee.Projection('EPSG:3035'))
-
-    # longitude3, latitude3 = 53.328713, 18.447336
-    # point3 = PointData(latitude3, longitude3, ee.Projection('EPSG:3035'))
-
-    # longitude4, latitude4 = 53.324253, 18.450105
-    # point4 = PointData(latitude4, longitude4, ee.Projection('EPSG:3035'))
-
-    # longitude5, latitude5 = 53.318886, 18.426898
-    # point5 = PointData(latitude5, longitude5, ee.Projection('EPSG:3035'))
-
-    # longitude6, latitude6 = 53.318886, 18.426898
-    # point6 = PointData(latitude6, longitude6, ee.Projection('EPSG:3035'))
-
-    # points_list = [point3]
+    waypoints = [marker['position'] for marker in data['waypoints']]
 
     points = []
     
@@ -56,27 +37,32 @@ def start_area_detection():
         print(point.get_coordinates_degrees())
 
     detected_area_boundary = uav_path_planner.detect_area(points)
+    # planned_path = uav_path_planner.plan_path(points, data['velocity'], data['time'])
+    planned_path = [
+        {"lat": 53.32596434311779, "lng": 18.44977865505595},
+        {"lat": 53.325337263130294, "lng": 18.448954881612252},
+        {"lat": 53.324896859836585, "lng": 18.44806740570445},
+        {"lat": 53.32445825428925, "lng": 18.446702580411028},
+        {"lat": 53.324395624593734, "lng": 18.445319566387724},
+        {"lat": 53.32432944027524, "lng": 18.4442536397614},
+        {"lat": 53.32426295547066, "lng": 18.4431259385087},
+        {"lat": 53.32405539004529, "lng": 18.44255186196048},
+        {"lat": 53.32370433884174, "lng": 18.442402412626933},
+        {"lat": 53.32351249104231, "lng": 18.442765684310388},
+        {"lat": 53.32350573229667, "lng": 18.443488372001838},
+        {"lat": 53.32355820016046, "lng": 18.44441549431164},
+        {"lat": 53.32368766734227, "lng": 18.44568635847051},
+        {"lat": 53.323856034168536, "lng": 18.447034587595653},
+        {"lat": 53.324168234470775, "lng": 18.448883132521104},
+        {"lat": 53.32446906804034, "lng": 18.450292381901335}
+    ]
 
-    return detected_area_boundary
+    return_data = {
+        "area": detected_area_boundary,
+        "path": planned_path,
+    }
 
-@app.route('/plan_path', methods=['POST'])
-def plan_path():
-    data = request.get_json()
-    waypoints = [marker['position'] for marker in data]
-    points = []
-
-    projection = ee.Projection('EPSG:3035')
-
-    for waypoint in waypoints:
-        points.append(PointData(waypoint['lng'], waypoint['lat'], projection))
-
-    for point in points:
-        print(point.get_coordinates_degrees())
-
-    # todo podpiac tutaj dane prawdziwe z frontu
-    uav_path_planner.plan_path(points, 70, 120)
-
-    return {"url": "http://127.0.0.1:5001/static/Planned_path.jpg"}
+    return Response(json.dumps(return_data), mimetype='application/json')
 
 if __name__ == '__main__':
     app.run(debug=True)

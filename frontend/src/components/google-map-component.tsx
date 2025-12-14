@@ -6,10 +6,16 @@ const GoogleMapComponent = ({
   onCenterChange,
   markers,
   setMarkers,
+  showMarkers,
+  plannedPath,
+  detectedArea,
 }: {
   onCenterChange: (center: google.maps.LatLngLiteral) => void;
   markers: Marker[];
   setMarkers: React.Dispatch<React.SetStateAction<Marker[]>>;
+  showMarkers: boolean;
+  plannedPath?: google.maps.LatLngLiteral[];
+  detectedArea?: google.maps.LatLngLiteral[];
 }) => {
   return (
     <div className="w-2/3">
@@ -21,6 +27,9 @@ const GoogleMapComponent = ({
           onCenterChange={onCenterChange}
           markers={markers}
           setMarkers={setMarkers}
+          showMarkers={showMarkers}
+          plannedPath={plannedPath}
+          detectedArea={detectedArea}
         />
       </APIProvider>
     </div>

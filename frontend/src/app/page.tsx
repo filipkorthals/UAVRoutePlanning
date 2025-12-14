@@ -7,13 +7,52 @@ import Footer from "@/components/footer";
 import ContentLayout from "@/components/content-layout";
 import Marker from "@/types/marker";
 import Modal from "@/components/modal";
+import { minTime, minVel } from "@/utils/form-values";
+import { sortMarkersClockwise } from "@/utils/geometry";
+import { sendWaypoints } from "@/services/route-planner";
 
 const Home = () => {
   const [markers, setMarkers] = useState<Marker[]>([]);
   const [currentCenter, setCurrentCenter] =
     useState<google.maps.LatLngLiteral | null>(null);
-  // display jest tymaczasowo do wyświetlenia wyniku planowania
-  const [displayModal, setDisplayModal] = useState<boolean>(false);
+  const [showMarkers, setShowMarkers] = useState(true);
+  const [time, setTime] = useState(minTime);
+  const [velocity, setVelocity] = useState(minVel);
+
+  const [plannedPath, setPlannedPath] = useState<google.maps.LatLngLiteral[]>(
+    []
+  );
+  const [detectedArea, setDetectedArea] = useState<google.maps.LatLngLiteral[]>(
+    []
+  );
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleSendWaypoints() {
+    if (markers.length < 3) {
+      alert("Minimum 3 waypoints required.");
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const data = await sendWaypoints(markers, time, velocity);
+
+      if (data.path) {
+        setPlannedPath(data.path);
+      }
+
+      if (data.area) {
+        setDetectedArea(data.area);
+      }
+
+      setMarkers(sortMarkersClockwise(markers));
+    } catch (error) {
+      alert("Error occured.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
 
   const handleAddMarker = () => {
     if (!currentCenter) return;
@@ -25,19 +64,10 @@ const Home = () => {
   const resetMarkers = () => {
     setMarkers([]);
   };
-
-  // TODO: naprawić port
-  async function sendWaypoints() {
-    let response = await fetch("http://127.0.0.1:5001/area_detection", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(markers),
-    });
-    const data = await response.json();
-    setDisplayModal(data.imgHtml !== "" ? true : false);
-  }
+  const resetPath = () => {
+    setPlannedPath([]);
+    setDetectedArea([]);
+  };
 
   return (
     <ContentLayout>
@@ -45,18 +75,28 @@ const Home = () => {
         onCenterChange={setCurrentCenter}
         markers={markers}
         setMarkers={setMarkers}
+        showMarkers={showMarkers}
+        plannedPath={plannedPath}
+        detectedArea={detectedArea}
       />
       <div className="flex flex-col w-1/3 h-full p-10">
         <UAVTitle />
         <FormComponent
+          showMarkers={showMarkers}
+          setShowMarkers={setShowMarkers}
           onAddMarker={handleAddMarker}
           resetMarkers={resetMarkers}
-          sendWaypoints={sendWaypoints}
+          resetPath={resetPath}
+          sendWaypoints={handleSendWaypoints}
+          time={time}
+          setTime={setTime}
+          velocity={velocity}
+          setVelocity={setVelocity}
         />
         <Footer />
       </div>
 
-      <Modal display={displayModal} setDisplay={setDisplayModal} />
+      <Modal display={isLoading} />
     </ContentLayout>
   );
 };

@@ -1,11 +1,21 @@
-const RangeInput = () => {
+const RangeInput = ({
+  minVal,
+  maxVal,
+  value,
+  setValue,
+}: {
+  minVal: number;
+  maxVal: number;
+  value: number;
+  setValue: (e: number) => void;
+}) => {
   return (
     <input
       type="range"
-      id="vol"
-      name="vol"
-      min="0"
-      max="50"
+      min={minVal}
+      max={maxVal}
+      value={value}
+      onChange={(e) => setValue(e.target.valueAsNumber)}
       className="block w-2/3 accent-primary mt-2 mb-2"
     />
   );
