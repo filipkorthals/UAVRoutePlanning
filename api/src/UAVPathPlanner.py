@@ -40,6 +40,8 @@ class UAVPathPlanner:
         self.__path_planner.run_path_finding_detected_area(self.__area_detection_controller.get_contours(), self.__area_detection_controller.get_hierarchy(),
                                                            self.__area_detection_controller.get_merged_map(),
                                                            np.pi / 4)
+        if self.__path_planner._path is None:
+            return []
         self.__path_planner.smoothen_path(velocity, np.pi/6, 250)
         self.__path_planner.draw_path(self.__area_detection_controller.get_merged_map())
         print("Path planning time:", str(time.time() - start), "seconds")
