@@ -77,15 +77,20 @@ class PathPlanner:
             return
         self.starting_point = [centroid_x, centroid_y]
         self.starting_direction = starting_direction
-        self._path, self._directions, self._turns, self.time_travelled = self.algorithm.calculate_path(contours, hierarchy, self.starting_point, self.starting_direction, self.priority_field)
+        self._path, self._directions, self._turns, self.time_travelled = self.algorithm.calculate_path(contours,
+                                                                                                       hierarchy,
+                                                                                                       self.starting_point,
+                                                                                                       self.starting_direction,
+                                                                                                       self.priority_field)
 
     def validate_turns(self, velocity: float) -> float:
         maximal_turn = 0
-        for i in range(0, len(self._path)-2):
-            (x1, y1), (x2, y2) = self._path[i], self._path[i+2]
+        for i in range(0, len(self._path) - 2):
+            (x1, y1), (x2, y2) = self._path[i], self._path[i + 2]
             x0, y0 = self._path[i + 1]
 
-            distance = abs((y2-y1)*x0-(x2-x1)*y0+x2*y1-y2*x1) / np.sqrt((y2-y1)**2+(x2-x1)**2)
+            distance = abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2 * y1 - y2 * x1) / np.sqrt(
+                (y2 - y1) ** 2 + (x2 - x1) ** 2)
 
             distance_in_m = distance * self.resolution
             velocity_in_m = velocity * 1000 / 3600
@@ -99,12 +104,12 @@ class PathPlanner:
 
     def smoothen_path(self, velocity: float, bank_angle: float, margin: float):
         velocity_in_m = velocity * 1000 / 3600
-        turn_radius = velocity_in_m**2 / (9.81 * tan(bank_angle))
+        turn_radius = velocity_in_m ** 2 / (9.81 * tan(bank_angle))
         turn_radius_in_px = turn_radius / self.resolution
         margin_in_px = margin / self.resolution
 
-        tangent_points_distance = turn_radius_in_px * np.abs(np.tan(self._turns/2))
-        tangent_arc_distance = turn_radius_in_px * (1/np.cos(self._turns/2) - 1)
+        tangent_points_distance = turn_radius_in_px * np.abs(np.tan(self._turns / 2))
+        tangent_arc_distance = turn_radius_in_px * (1 / np.cos(self._turns / 2) - 1)
 
         points_to_arc = (tangent_points_distance > 0.001) & (tangent_arc_distance <= margin_in_px)
 
@@ -113,17 +118,17 @@ class PathPlanner:
         smoothed_path = [self._path[0]]
 
         for index in range(1, self._turns.size):
-            leg1_point = self._path[index-1]
+            leg1_point = self._path[index - 1]
             corner_point = self._path[index]
-            leg2_point = self._path[index+1]
+            leg2_point = self._path[index + 1]
 
             if points_to_arc[index]:
 
                 vector21 = (leg1_point - corner_point)
                 vector23 = (leg2_point - corner_point)
 
-                point12 = corner_point + tangent_points_distance[index] * vector21/np.linalg.norm(vector21)
-                point23 = corner_point + tangent_points_distance[index] * vector23/np.linalg.norm(vector23)
+                point12 = corner_point + tangent_points_distance[index] * vector21 / np.linalg.norm(vector21)
+                point23 = corner_point + tangent_points_distance[index] * vector23 / np.linalg.norm(vector23)
 
                 smoothed_path += [point12, point23]
 
@@ -153,7 +158,7 @@ class PathPlanner:
                 else:
                     chosen_point2 = point1
 
-                smoothed_path += [chosen_point+centre, corner_point, chosen_point2+centre]
+                smoothed_path += [chosen_point + centre, corner_point, chosen_point2 + centre]
 
             else:
                 smoothed_path += [corner_point]

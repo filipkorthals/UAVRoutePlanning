@@ -93,6 +93,7 @@ class PathAlgorithm:
         predator_cost = distance_matrix(grid_points, [predator])
         predator_cost -= np.max(predator_cost)
         predator_cost *= -1
+        predator_cost /= self.scan_radius
 
         priority_multiplier = 0.5
         if priority_field is not None:
@@ -144,8 +145,11 @@ class PathAlgorithm:
         target_angles = np.arctan2(delta_vector[1], delta_vector[0])
         angle_cost = target_angles - current_direction  # compensate for current direction
         angle_cost = (angle_cost + np.pi) % (2 * np.pi) - np.pi
+        angle_cost = angle_cost.reshape(-1, 1)
 
-        return np.array(path + [starting_point]), np.array(direction_history+[target_angles]), np.array(turn_history+[angle_cost]), time_travelled
+        turn_history.append(angle_cost[0])
+
+        return np.array(path + [starting_point]), np.array(direction_history+[target_angles]), np.array(turn_history), time_travelled
 
     def calculate_path(self, contours: list[int], hierarchy: list[int], starting_point: np.array, starting_direction: float, priority_field: np.array) -> (np.array, np.array, np.array):
         contour_vertices, obstacles = self.process_contours(contours, hierarchy)
