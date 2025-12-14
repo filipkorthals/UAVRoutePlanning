@@ -155,7 +155,7 @@ class PathAlgorithm:
         contour_vertices, obstacles = self.process_contours(contours, hierarchy)
         grid_points = self.create_grid(contour_vertices, obstacles)
         if grid_points.size == 0:
-            return None, None, None
+            return None, None, None, None
         return self.traverse_the_grid(grid_points, starting_point, starting_direction, priority_field)
 
     def __str__(self):
