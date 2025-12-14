@@ -28,7 +28,7 @@ class UAVPathPlanner:
     def plan_path(self, points: list[PointData], velocity: float, travel_time: float):
         """ Function that handles path planning for UAV """
         start = time.time()
-        self.__path_planner.resolution = 20
+        self.__path_planner.resolution = 10
         scan_radius = 2000 / self.__path_planner.resolution
 
         # velocity needs to be converted from kmph to mps:
