@@ -384,6 +384,25 @@ class AreaDetector:
 
         return points
 
+    def convert_path_points_to_degrees(self, path: list[int]):
+        """ Converts boundary points into degree coordinates """
+        points = []
+
+        for point in path:
+            point_tmp = tuple(point.tolist())
+            point = ee.Geometry.Point(self.calculate_coordinates_meters(point_tmp), self.__projection)
+            points.append(point)
+
+        points_collection = ee.FeatureCollection(points).map(
+            lambda element: element.setGeometry(element.geometry().transform('EPSG:4326'))
+        )
+
+        # If there will be more than 65 536 points, the function will fail
+        data = points_collection.getInfo()['features']
+        points = [{'lng': point['geometry']['coordinates'][0], 'lat': point['geometry']['coordinates'][1]} for point in data]
+
+        return points
+
     def __generate_points_grid(self, points: list[PointData]) -> list[PointData]:
         """ Generates grid of points in the selected area of interest """
         polygon_outline = points[:]

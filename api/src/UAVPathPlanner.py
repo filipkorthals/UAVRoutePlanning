@@ -43,6 +43,8 @@ class UAVPathPlanner:
         self.__path_planner.smoothen_path(velocity, np.pi/6, 250)
         self.__path_planner.draw_path(self.__area_detection_controller.get_merged_map())
         print("Path planning time:", str(time.time() - start), "seconds")
+        return self.__area_detection_controller.area_detector.convert_path_points_to_degrees(self.__path_planner._path)
+
 
 
 # code to execute
