@@ -355,7 +355,7 @@ class AreaDetector:
 
     def calculate_coordinates_meters(self, img_coordinates: tuple[int, int]) -> tuple[float, float]:
         """ Calculates img coordinates of point on the map in meters """
-        row_num, col_num = img_coordinates[1] // self.__patch_size, img_coordinates[0] // self.__patch_size
+        row_num, col_num = int(img_coordinates[1] // self.__patch_size), int(img_coordinates[0] // self.__patch_size)
         x, y = img_coordinates[0] % self.__patch_size, img_coordinates[1] % self.__patch_size
         x_meters, y_meters = self.__detected_areas_map_fragments[row_num][col_num].convert_img_coordinates_to_map_coordinates(x, y)
         return x_meters, y_meters
