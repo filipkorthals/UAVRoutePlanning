@@ -37,11 +37,12 @@ def start_area_detection():
         print(point.get_coordinates_degrees())
 
     detected_area_boundary = uav_path_planner.detect_area(points)
-    planned_path = uav_path_planner.plan_path(points, data['velocity'], data['time'])
+    planned_path, time_travelled = uav_path_planner.plan_path(points, data['velocity'], data['time'])
 
     return_data = {
         "area": detected_area_boundary,
         "path": planned_path,
+        "time_travelled": time_travelled
     }
 
     return Response(json.dumps(return_data), mimetype='application/json')
