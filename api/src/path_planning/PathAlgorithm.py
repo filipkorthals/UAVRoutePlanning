@@ -59,8 +59,17 @@ class PathAlgorithm:
         set_points = np.array(
             [[x * np.cos(alpha) - y * np.sin(alpha), x * np.sin(alpha) + y * np.cos(alpha)] for x, y in set_points])
         print(set_points.size)
-        centre = np.array([np.average(set_points[:, 0]) - np.average(vertices_array[:, 0]),
-                           np.average(set_points[:, 1]) - np.average(vertices_array[:, 1])])
+
+        x = vertices_array[:, 0]
+        y = vertices_array[:, 1]
+
+        x = np.append(x, x[0])
+        y = np.append(y, y[0])
+
+        A = 0.5 * np.sum(x[:-1] * y[1:] - x[1:] * y[:-1])
+        Cx = (1 / (6 * A)) * np.sum((x[:-1] + x[1:]) * (x[:-1] * y[1:] - x[1:] * y[:-1]))
+        Cy = (1 / (6 * A)) * np.sum((y[:-1] + y[1:]) * (x[:-1] * y[1:] - x[1:] * y[:-1]))
+        centre = np.array([Cx, Cy])
         set_points = set_points - centre
 
         polygon = Path(vertices_array)
