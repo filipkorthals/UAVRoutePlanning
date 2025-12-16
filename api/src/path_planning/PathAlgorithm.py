@@ -66,11 +66,14 @@ class PathAlgorithm:
         x = np.append(x, x[0])
         y = np.append(y, y[0])
 
-        A = 0.5 * np.sum(x[:-1] * y[1:] - x[1:] * y[:-1])
+
+        A = np.abs(0.5 * np.sum(x[:-1] * y[1:] - x[1:] * y[:-1]))
         Cx = (1 / (6 * A)) * np.sum((x[:-1] + x[1:]) * (x[:-1] * y[1:] - x[1:] * y[:-1]))
         Cy = (1 / (6 * A)) * np.sum((y[:-1] + y[1:]) * (x[:-1] * y[1:] - x[1:] * y[:-1]))
+        print(Cx, Cy)
         centre = np.array([Cx, Cy])
         set_points = set_points - centre
+        print(set_points)
 
         polygon = Path(vertices_array)
         mask = polygon.contains_points(set_points)
