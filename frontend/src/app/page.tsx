@@ -34,7 +34,9 @@ const Home = () => {
       return;
     }
 
+    setMarkers(sortMarkersClockwise(markers));
     setIsLoading(true);
+
     try {
       const data = await sendWaypoints(markers, time, velocity);
 
@@ -46,7 +48,9 @@ const Home = () => {
         setDetectedArea(data.area);
       }
 
-      setMarkers(sortMarkersClockwise(markers));
+      if (data.time_travelled) {
+        console.log("Time travelled: ", data.time_travelled);
+      }
     } catch (error) {
       alert("Error occured.");
     } finally {
